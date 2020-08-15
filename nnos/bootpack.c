@@ -5,6 +5,19 @@ struct BUFFER buffer;
 
 void make_window(struct SHEET *sht, char *title);
 
+void printlog(char *format, ...)
+{
+	va_list va;
+	char s[1000];
+
+	va_start(va, format);
+	vsprintf(s, format, va);
+	send_string(s);
+	va_end(va);
+
+	return;
+}
+
 void init_pic(void)
 {
 	/* 割り込み禁止 */
@@ -80,8 +93,8 @@ void HariMain(void)
 	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;;
 	struct BUFDATA dat;
 	struct SHTCTL *shtctl;
-	struct SHEET *sht_back, *sht_win, *sht_mouse;
-	unsigned char *buf_back, *buf_win, buf_mouse[256 * 4];
+	struct SHEET *sht_back, *sht_win, *sht_mouse, *sht_win2;
+	unsigned char *buf_back, *buf_win, buf_mouse[256 * 4], *buf_win2;
 	struct MOUSE_DEC mdec;
 	int mx, my;
 
@@ -129,20 +142,31 @@ void HariMain(void)
 	putfontstr(VMODE_WINDOW, buf_win, WINDOW_SCLINE(sht_win), 24, 28, black, "Welcome to");
 	putfontstr(VMODE_WINDOW, buf_win, WINDOW_SCLINE(sht_win), 24, 44, black, "  No Name OS!");
 
+	sht_win2 = sheet_alloc(shtctl);
+	buf_win2 = (unsigned char *)memman_alloc_4k(memman, 160 * 68 * VMODE_WINDOW / 8);
+	sheet_setbuf(sht_win2, buf_win2, 160, 68);
+	make_window(sht_win2, "window2");
+	putfontstr(VMODE_WINDOW, buf_win2, WINDOW_SCLINE(sht_win2), 24, 28, black, "Welcome to");
+	putfontstr(VMODE_WINDOW, buf_win2, WINDOW_SCLINE(sht_win2), 24, 44, black, "  No Name OS!");
+
 	/* マウス */
 	sht_mouse = sheet_alloc(shtctl);
 	sheet_setbuf(sht_mouse, buf_mouse, 16, 16);
+
 	init_mouse_cursor(sht_mouse);
+	buf_mouse[1 * WINDOW_SCLINE(sht_mouse) + 10 * VMODE_WINDOW / 8 + 3] = 0xff;
 	mx = (binfo->scrnx - 16) / 2;
 	my = (binfo->scrny - 28 - 16) / 2;
 
 	sheet_slide(sht_back, 0, 0);
-	sheet_slide(sht_win, 200, 200);
+	sheet_slide(sht_win, 80, 80);
+//	sheet_slide(sht_win2, 300, 300);
 	sheet_slide(sht_mouse, mx, my);
 
 	sheet_updown(sht_back,  0);
 	sheet_updown(sht_win,   1);
-	sheet_updown(sht_mouse, 2);
+//	sheet_updown(sht_win2,  2);
+	sheet_updown(sht_mouse, 3);
 
 	/* 画面初期化 */
 	putfontstr(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back),  8,  8, white, "ABC 123");
@@ -170,6 +194,8 @@ void HariMain(void)
 	sheet_refresh(sht_back, 0, 0, binfo->scrnx, 120);
 	sheet_refresh(sht_back, binfo->scrnx - 45, binfo->scrny - 21, binfo->scrnx - 5, binfo->scrny - 5);
 	sheet_refresh(sht_back, 400, 400, 550, 416);
+
+	sheet_refresh(sht_back, 140, 120, 250, 240);
 
 	for(;;){
 		io_cli();
@@ -201,9 +227,16 @@ void HariMain(void)
 					if((mdec.btn & 0x01) != 0) s[1] = 'L';
 					if((mdec.btn & 0x02) != 0) s[3] = 'R';
 					if((mdec.btn & 0x04) != 0) s[2] = 'C';
+					send_string("start mouse interrupt\n");
 					boxfill(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), back, 8, 116, 8 + 15 * 8, 116 + 16);
 					putfontstr(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), 8, 116, white, s);
 					sheet_refresh(sht_back, 8, 116, 8 + 15 * 8, 116 + 16);
+					send_string("end mouse interrupt\n");
+
+					if((mdec.btn & 0x01) != 0){
+						sheet_slide(sht_win, mx, my);
+					}
+
 					/* カーソル移動 */
 					mx += mdec.x;
 					my += mdec.y;

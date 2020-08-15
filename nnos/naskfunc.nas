@@ -10,6 +10,7 @@
 		GLOBAL	_load_gdtr, _load_idtr
 		GLOBAL	_load_cr0, _store_cr0
 		GLOBAL	_memtest_sub
+		GLOBAL	_wait10
 
 [SECTION .text]
 
@@ -105,4 +106,11 @@ mts_fin:
 		pop		ebx
 		pop		esi
 		pop		edi
+		ret
+
+_wait10:
+		push	cx
+		mov		cx,10
+		rep		nop
+		pop		cx
 		ret
