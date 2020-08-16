@@ -160,12 +160,12 @@ void HariMain(void)
 
 	sheet_slide(sht_back, 0, 0);
 	sheet_slide(sht_win, 80, 80);
-//	sheet_slide(sht_win2, 300, 300);
+	sheet_slide(sht_win2, 300, 300);
 	sheet_slide(sht_mouse, mx, my);
 
 	sheet_updown(sht_back,  0);
 	sheet_updown(sht_win,   1);
-//	sheet_updown(sht_win2,  2);
+	sheet_updown(sht_win2,  2);
 	sheet_updown(sht_mouse, 3);
 
 	/* ‰æ–Ê‰Šú‰» */
@@ -195,7 +195,7 @@ void HariMain(void)
 	sheet_refresh(sht_back, binfo->scrnx - 45, binfo->scrny - 21, binfo->scrnx - 5, binfo->scrny - 5);
 	sheet_refresh(sht_back, 400, 400, 550, 416);
 
-	sheet_refresh(sht_back, 140, 120, 250, 240);
+	sheet_refresh(sht_win, 0, 0, 160, 160);
 
 	for(;;){
 		io_cli();
