@@ -1,2 +1,11 @@
+とりあえずメモ
+z_toolsを適当にインストール(z_toolsは30日本のサイトから落とせます)
+configure.txtを適当に変更
+make refreshでビルド
+make runでqemu実行
+nnos.imgが実行ファイル(仮想環境でフロッピーイメージとして実行可能)
+
+Linuxは改造すれば動くだろうけどまだ未対応です(ごめんなさい!)
+
 Make Font Windows GUIを使わせてもらいました!
 https://takymsystems.blog.fc2.com/blog-entry-19.html

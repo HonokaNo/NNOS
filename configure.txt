@@ -28,6 +28,6 @@ MAKEFONT = $(TOOLPATH)makefont
 BIN2OBJ  = $(TOOLPATH)bin2obj
 BIM2HRB  = $(TOOLPATH)bim2hrb
 BIM2BIN  = $(TOOLPATH)bim2bin
-RULEFILE = ../nnos.rul
+RULEFILE = $(INCPATH)haribote.rul
 EDIMG    = $(TOOLPATH)edimg
 GOLIB    = $(TOOLPATH)golib00

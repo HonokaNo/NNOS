@@ -114,8 +114,6 @@ void sheet_refreshsub(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, in
 		by0 = vy0 - sht->vy0;
 		bx1 = vx1 - sht->vx0;
 		by1 = vy1 - sht->vy0;
-		printlog("%d %d\n", bx0, by0);
-		printlog("%d %d\n", bx1, by1);
 		if(bx0 < 0) bx0 = 0;
 		if(by0 < 0) by0 = 0;
 		if(bx1 > sht->bxsize) bx1 = sht->bxsize;
@@ -129,7 +127,6 @@ void sheet_refreshsub(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, in
 				c.g = buf[by * WINDOW_SCLINE(sht) + bx * VMODE_WINDOW / 8 + 1];
 				c.r = buf[by * WINDOW_SCLINE(sht) + bx * VMODE_WINDOW / 8 + 2];
 				c.alpha = buf[by * WINDOW_SCLINE(sht) + bx * VMODE_WINDOW / 8 + 3];
-//				if(c.alpha != 0x00) putPixel(binfo->vmode, vram, binfo->scline, vx, vy, c);
 				if(map[vy * ctl->xsize + vx] == sid) putPixel(binfo->vmode, vram, binfo->scline, vx, vy, c);
 			}
 		}

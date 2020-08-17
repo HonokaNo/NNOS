@@ -1,14 +1,13 @@
 #include "bootpack.h"
 
-void init_screen(char vmode, char *vram, int scline, int scrnx, int scrny)
+void init_screen(char vmode, char *vram, int scline, int scrnx, int scrny, struct color back)
 {
 	struct color light_gray = {0xc6, 0xc6, 0xc6, 0xff};
 	struct color  dark_gray = {0x84, 0x84, 0x84, 0xff};
 	struct color      white = {0xff, 0xff, 0xff, 0xff};
 	struct color      black = {0x00, 0x00, 0x00, 0xff};
-	struct color background = {0x00, 0x84, 0x84, 0xff};
 
-	boxfill(vmode, vram, scline, background,          0,          0, scrnx -  1, scrny - 29);
+	boxfill(vmode, vram, scline,       back,          0,          0, scrnx -  1, scrny - 29);
 	boxfill(vmode, vram, scline, light_gray,          0, scrny - 28, scrnx -  1, scrny - 28);
 	boxfill(vmode, vram, scline,      white,          0, scrny - 27, scrnx -  1, scrny - 27);
 	boxfill(vmode, vram, scline, light_gray,          0, scrny - 26, scrnx -  1, scrny -  1);

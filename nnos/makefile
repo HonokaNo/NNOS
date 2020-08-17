@@ -1,7 +1,7 @@
 include ../configure.txt
 
 OBJS_BOOTPACK = bootpack.obj naskfunc.obj hankaku.obj graphic.obj dsctbl.obj asminterrupt.obj interrupt.obj \
-				memory.obj buffer.obj rtc.obj sheet.obj parallel.obj
+				memory.obj buffer.obj rtc.obj sheet.obj parallel.obj timer.obj
 
 # デフォルト動作
 
@@ -51,6 +51,7 @@ endif
 
 clean :
 	-$(DEL) asmhead.bin
+	-$(DEL) hankaku.bin
 	-$(DEL) *.lst
 	-$(DEL) *.obj
 	-$(DEL) *.map

@@ -2,6 +2,29 @@
 
 extern struct BUFFER buffer;
 
+/* timer */
+void inthandler20(int *esp)
+{
+	struct TIMER *timer;
+
+	io_out8(PIC0_OCW2, 0x60);
+
+	timerctl.count++;
+	if(timerctl.next > timerctl.count) return;
+
+	timer = timerctl.t0;
+	for(;;){
+		if(timer->timeout > timerctl.count) break;
+		timer->flags = TIMER_FLAGS_ALLOC;
+		buffer_put(timer->buf, TAG_TIMER, timer->data);
+		timer = timer->next;
+	}
+	timerctl.t0 = timer;
+	timerctl.next = timer->timeout;
+
+	return;
+}
+
 /* PS/2 keyboard */
 void inthandler21(int *esp)
 {

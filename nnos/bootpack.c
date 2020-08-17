@@ -84,7 +84,8 @@ void HariMain(void)
 	struct color white = {0xff, 0xff, 0xff, 0xff};
 	struct color black = {0x00, 0x00, 0x00, 0xff};
 	struct color light_gray = {0xc6, 0xc6, 0xc6, 0xff};
-	struct color back  = {0x00, 0x84, 0x84, 0xff};
+	struct color back  = {0x99, 0xd9, 0xea, 0xff};
+	struct color back8 = {0x00, 0xc6, 0xc6, 0xff};
 
 	struct BOOTINFO *binfo = (struct BOOTINFO *)0x0ff0;
 	struct localtime lt;
@@ -97,6 +98,7 @@ void HariMain(void)
 	unsigned char *buf_back, *buf_win, buf_mouse[256 * 4], *buf_win2;
 	struct MOUSE_DEC mdec;
 	int mx, my;
+	struct TIMER *timer, *timer2, *timer3;
 
 	init_gdtidt();
 	init_pic();
@@ -108,12 +110,24 @@ void HariMain(void)
 
 	io_sti();
 
-	/* 割り込み有効化 11111001 */
-	io_out8(PIC0_IMR, 0xf9);
+	/* 割り込み有効化 11111000 */
+	io_out8(PIC0_IMR, 0xf8);
 	/* 割り込み有効化 11101110 */
 	io_out8(PIC1_IMR, 0xee);
 
-	buffer_init(&buffer, 200);
+	buffer_init(&buffer, 250);
+
+	init_pit();
+
+	timer = timer_alloc();
+	timer_init(timer, &buffer, 10);
+	timer_settime(timer, 1000);
+	timer2 = timer_alloc();
+	timer_init(timer2, &buffer, 3);
+	timer_settime(timer2, 300);
+	timer3 = timer_alloc();
+	timer_init(timer3, &buffer, 1);
+	timer_settime(timer3, 50);
 
 	init_keyboard();
 	enable_mouse(&mdec);
@@ -132,7 +146,7 @@ void HariMain(void)
 	sht_back = sheet_alloc(shtctl);
 	buf_back = (unsigned char *)memman_alloc_4k(memman, binfo->scrnx * binfo->scrny * VMODE_WINDOW / 8);
 	sheet_setbuf(sht_back, buf_back, binfo->scrnx, binfo->scrny);
-	init_screen(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), binfo->scrnx, binfo->scrny);
+	init_screen(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), binfo->scrnx, binfo->scrny, binfo->vmode == 8 ? back8 : back);
 
 	/* ウィンドウ */
 	sht_win = sheet_alloc(shtctl);
@@ -170,8 +184,8 @@ void HariMain(void)
 
 	/* 画面初期化 */
 	putfontstr(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back),  8,  8, white, "ABC 123");
-	putfontstr(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), 31, 31, black, "NNOS / No Name OS.");
-	putfontstr(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), 30, 30, white, "NNOS / No Name OS.");
+	putfontstr(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), 31, 31, black, "No Name OS.");
+	putfontstr(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), 30, 30, white, "No Name OS.");
 
 	/* 時刻取得 */
 	lt = readrtc();
@@ -206,10 +220,10 @@ void HariMain(void)
 			io_sti();
 
 			if(dat.tag == TAG_KEYBOARD){
-				boxfill(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), back, 8, 80, 8 + 8 * 20, 80 + 16);
+				boxfill(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), back, 8, 80, 240, 80 + 16);
 				sprintf(s, "keydata: %02X", dat.data);
 				putfontstr(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), 8, 80, white, s);
-				sheet_refresh(sht_back, 8, 80, 168, 96);
+				sheet_refresh(sht_back, 8, 80, 240, 96);
 			}
 			if(dat.tag == TAG_RTC){
 				boxfill(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), light_gray, binfo->scrnx - 45, binfo->scrny - 21, binfo->scrnx - 45 + 8 * 5, binfo->scrny - 21 + 16);
@@ -227,11 +241,9 @@ void HariMain(void)
 					if((mdec.btn & 0x01) != 0) s[1] = 'L';
 					if((mdec.btn & 0x02) != 0) s[3] = 'R';
 					if((mdec.btn & 0x04) != 0) s[2] = 'C';
-					send_string("start mouse interrupt\n");
 					boxfill(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), back, 8, 116, 8 + 15 * 8, 116 + 16);
 					putfontstr(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), 8, 116, white, s);
 					sheet_refresh(sht_back, 8, 116, 8 + 15 * 8, 116 + 16);
-					send_string("end mouse interrupt\n");
 
 					if((mdec.btn & 0x01) != 0){
 						sheet_slide(sht_win, mx, my);
@@ -245,18 +257,37 @@ void HariMain(void)
 					if(mx > binfo->scrnx - 1) mx = binfo->scrnx - 1;
 					if(my > binfo->scrny - 1) my = binfo->scrny - 1;
 					sprintf(s, "(%3d, %3d)", mx, my);
-					boxfill(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), back, 8, 132, 8 + 10 * 8, 136 + 16);
+					boxfill(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), back, 8, 132, 8 + 10 * 8, 132 + 16);
 					putfontstr(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), 8, 132, white, s);
-					sheet_refresh(sht_back, 8, 132, 8 + 10 * 8, 136 + 16);
+					sheet_refresh(sht_back, 8, 132, 8 + 10 * 8, 132 + 16);
 					sheet_slide(sht_mouse, mx, my);
 				}
 			}
+			if(dat.tag == TAG_TIMER){
+				if(dat.data == 10){
+					io_sti();
+					putfontstr(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), 8, 148, white, "10[sec]");
+					sheet_refresh(sht_back, 8, 148, 8 + 7 * 8, 148 + 16);
+				}
+				if(dat.data == 3){
+					io_sti();
+					putfontstr(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), 8, 164, white, "3[sec]");
+					sheet_refresh(sht_back, 8, 164, 8 + 6 * 8, 164 + 16);
+				}
+				if(dat.data == 1 || dat.data == 0){
+					io_sti();
+					if(dat.data == 0){
+						timer_init(timer3, &buffer, 1);
+						boxfill(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), white, 8, 180, 15, 195);
+					}else if(dat.data == 1){
+						timer_init(timer3, &buffer, 0);
+						boxfill(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), back, 8, 180, 15, 195);
+					}
+					timer_settime(timer3, 50);
+					sheet_refresh(sht_back, 8, 180, 16, 196);
+				}
+			}
 		}
-		boxfill(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), back, 8, 100, 8 + 8 * 20, 100 + 16);
-		sprintf(s, "%d %d", buffer.r, buffer.w);
-		putfontstr(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), 8, 100, white, s);
-		sheet_refresh(sht_back, 8, 100, 64, 116);
-		sheet_refresh(sht_back, 400, 400, 550, 416);
 	}
 }
 

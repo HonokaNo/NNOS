@@ -12,6 +12,7 @@ int load_cr0(void);
 void store_cr0(int cr0);
 unsigned int memtest_sub(unsigned int start, unsigned int end);
 
+void asm_inthandler20(void);
 void asm_inthandler21(void);
 void asm_inthandler27(void);
 void asm_inthandler28(void);
@@ -38,7 +39,7 @@ struct color
 	char alpha;
 };
 
-void init_screen(char vmode, char *vram, int scline, int scrnx, int scrny);
+void init_screen(char vmode, char *vram, int scline, int scrnx, int scrny, struct color back);
 
 void putPixel(char vmode, char *vram, int scline, int x, int y, struct color c);
 void boxfill(char vmode, char *vram, int scline, struct color c, int x0, int y0, int x1, int y1);
@@ -103,6 +104,7 @@ void set_gatedesc(struct GATE_DESCRIPTOR *gd, int offset, int selector, int ar);
 #define TAG_KEYBOARD	1		/* キーボードデータ */
 #define TAG_RTC			2		/* RTC時刻更新 */
 #define TAG_MOUSE		3		/* マウスデータ */
+#define TAG_TIMER		4
 
 struct BUFDATA
 {
@@ -129,7 +131,7 @@ struct MOUSE_DEC
 	int x, y, btn;
 };
 
-#define MEMMAN_FREES		3000
+#define MEMMAN_FREES		1500
 #define MEMMAN_ADDR			0x003c0000
 
 struct FREEINFO
@@ -154,7 +156,7 @@ int memman_free_4k(struct MEMMAN *man, unsigned int addr, unsigned int size);
 #define PORT_KEYDAT		0x0060
 #define PORT_KEYCMD		0x0064
 
-#define MAX_SHEETS	256
+#define MAX_SHEETS	100
 
 struct SHEET
 {
@@ -184,3 +186,30 @@ void init_mouse_cursor(struct SHEET *sht);
 
 void send_data(unsigned char data);
 void send_string(char *string);
+
+#define MAX_TIMER	300
+#define TIMER_FLAGS_ALLOC	1
+#define TIMER_FLAGS_USING	2
+
+struct TIMER
+{
+	struct TIMER *next;
+	unsigned int timeout, flags;
+	struct BUFFER *buf;
+	int data;
+};
+
+struct TIMERCTL
+{
+	unsigned int count, next;
+	struct TIMER *t0;
+	struct TIMER timers0[MAX_TIMER];
+};
+
+extern struct TIMERCTL timerctl;
+
+void init_pit(void);
+struct TIMER *timer_alloc(void);
+void timer_free(struct TIMER *timer);
+void timer_init(struct TIMER *timer, struct BUFFER *buf, unsigned char data);
+void timer_settime(struct TIMER *timer, unsigned int timeout);
