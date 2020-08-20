@@ -1,6 +1,6 @@
 #include "bootpack.h"
 
-void buffer_init(struct BUFFER *buf, int size)
+void buffer_init(struct BUFFER *buf, int size, struct TASK *task)
 {
 	struct MEMMAN *man = (struct MEMMAN *)MEMMAN_ADDR;
 
@@ -8,6 +8,7 @@ void buffer_init(struct BUFFER *buf, int size)
 	buf->size = size;
 	buf->free = size;
 	buf->r = buf->w = 0;
+	buf->task = task;
 	buf->flg = 0;
 }
 
@@ -22,6 +23,11 @@ int buffer_put(struct BUFFER *buf, int tag, int data)
 	buf->w++;
 	if(buf->w == buf->size) buf->w = 0;
 	buf->free--;
+	if(buf->task != 0){
+		if(buf->task->flags != 2){
+			task_run(buf->task, -1, 0);
+		}
+	}
 
 	return 0;
 }

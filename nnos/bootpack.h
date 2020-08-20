@@ -10,7 +10,9 @@ void load_gdtr(int limit, int addr);
 void load_idtr(int limit, int addr);
 int load_cr0(void);
 void store_cr0(int cr0);
+void load_tr(int tr);
 unsigned int memtest_sub(unsigned int start, unsigned int end);
+void farjmp(int eip, int cs);
 
 void asm_inthandler20(void);
 void asm_inthandler21(void);
@@ -85,6 +87,7 @@ void set_gatedesc(struct GATE_DESCRIPTOR *gd, int offset, int selector, int ar);
 #define LIMIT_BOTPAK	0x0007ffff
 #define AR_DATA32_RW	0x4092
 #define AR_CODE32_ER	0x409a
+#define AR_TSS32		0x0089
 #define AR_INTGATE32	0x008e
 
 #define PIC0_ICW1		0x0020
@@ -118,9 +121,10 @@ struct BUFFER
 	struct BUFDATA *buf;
 	char flg;
 	int size, free, r, w;
+	struct TASK *task;
 };
 
-void buffer_init(struct BUFFER *buf, int size);
+void buffer_init(struct BUFFER *buf, int size, struct TASK *task);
 int buffer_put(struct BUFFER *buf, int tag, int data);
 struct BUFDATA buffer_get(struct BUFFER *buf);
 int buffer_status(struct BUFFER *buf);
@@ -213,3 +217,47 @@ struct TIMER *timer_alloc(void);
 void timer_free(struct TIMER *timer);
 void timer_init(struct TIMER *timer, struct BUFFER *buf, unsigned char data);
 void timer_settime(struct TIMER *timer, unsigned int timeout);
+
+#define MAX_TASKS		500
+#define TASK_GDT0		  3
+#define MAX_TASKS_LV	100
+#define MAX_TASKLEVELS	 10
+
+struct TSS32
+{
+	int backlink, esp09, ss0, esp1, ss1, esp2, ss2, cr3;
+	int eip, eflags, eax, ecx, edx, ebx, esp, ebp, esi, edi;
+	int es, cs, ss, ds, fs, gs;
+	int ldtr, iomap;
+};
+
+struct TASK
+{
+	int sel, flags;
+	int level, priority;
+	struct TSS32 tss;
+	struct BUFFER buf;
+};
+
+struct TASKLEVEL
+{
+	int running, now;
+	struct TASK *tasks[MAX_TASKS_LV];
+};
+
+struct TASKCTL
+{
+	int now_lv;
+	char lv_change;
+	struct TASKLEVEL level[MAX_TASKLEVELS];
+	struct TASK tasks0[MAX_TASKS];
+};
+
+extern struct TIMER *task_timer;
+
+struct TASK *task_now(void);
+struct TASK *task_init(struct MEMMAN *memman);
+struct TASK *task_alloc(void);
+void task_run(struct TASK *task, int level, int priority);
+void task_switch(void);
+void task_sleep(struct TASK *task);

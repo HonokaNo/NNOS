@@ -9,8 +9,10 @@
 		GLOBAL	_io_load_eflags, _io_store_eflags
 		GLOBAL	_load_gdtr, _load_idtr
 		GLOBAL	_load_cr0, _store_cr0
+		GLOBAL	_load_tr
 		GLOBAL	_memtest_sub
 		GLOBAL	_wait10
+		GLOBAL	_farjmp
 
 [SECTION .text]
 
@@ -75,6 +77,10 @@ _store_cr0:		; void store_cr0(int cr0);
 		mov		cr0,eax
 		ret
 
+_load_tr:		; void load_tr(int tr);
+		ltr		[esp+4]
+		ret
+
 _memtest_sub:	; unsigned int memtest_sub(unsigned int start, unsigned int end)
 		push	edi
 		push	esi
@@ -113,4 +119,8 @@ _wait10:
 		mov		cx,10
 		rep		nop
 		pop		cx
+		ret
+
+_farjmp:		; void farjmp(int eip, int cs);
+		jmp		far [esp+4]
 		ret

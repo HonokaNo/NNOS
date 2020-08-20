@@ -6,6 +6,7 @@ extern struct BUFFER buffer;
 void inthandler20(int *esp)
 {
 	struct TIMER *timer;
+	char ts = 0;
 
 	io_out8(PIC0_OCW2, 0x60);
 
@@ -16,11 +17,13 @@ void inthandler20(int *esp)
 	for(;;){
 		if(timer->timeout > timerctl.count) break;
 		timer->flags = TIMER_FLAGS_ALLOC;
-		buffer_put(timer->buf, TAG_TIMER, timer->data);
+		if(timer != task_timer) buffer_put(timer->buf, TAG_TIMER, timer->data);
+		else ts = 1;
 		timer = timer->next;
 	}
 	timerctl.t0 = timer;
 	timerctl.next = timer->timeout;
+	if(ts != 0) task_switch();
 
 	return;
 }
