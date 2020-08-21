@@ -85,13 +85,14 @@ int mouse_decode(struct MOUSE_DEC *mdec, unsigned char dat);
 void putfontstr_sht(struct SHEET *sht, int x, int y, struct color c, struct color bc, char *s);
 void putfontstr_sht_ref(struct SHEET *sht, int x, int y, struct color c, struct color bc, char *s);
 void make_textbox(struct SHEET *sht, int x0, int y0, int sx, int sy, struct color c);
-void console_task(struct SHEET *sht);
+void console_task(struct SHEET *sht, unsigned int memtotal);
 
 void HariMain(void)
 {
 	struct color white = {0xff, 0xff, 0xff, 0xff};
 	struct color black = {0x00, 0x00, 0x00, 0xff};
 	struct color light_gray = {0xc6, 0xc6, 0xc6, 0xff};
+	struct color invisible_cursor = {0x00, 0x00, 0x00, 0x00};
 	struct color back24  = {0x99, 0xd9, 0xea, 0xff};
 	struct color back8 = {0x00, 0x84, 0x84, 0xff};
 	struct color back, cursor_c;
@@ -215,7 +216,7 @@ void HariMain(void)
 	make_textbox(sht_cons, 8, 28, 240, 128, black);
 
 	task_cons = task_alloc();
-	task_cons->tss.esp = memman_alloc_4k(memman, 64 * 1024) + 64 * 1024 - 8;
+	task_cons->tss.esp = memman_alloc_4k(memman, 64 * 1024) + 64 * 1024 - 12;
 	task_cons->tss.eip = (int)&console_task;
 	task_cons->tss.es = 1 * 8;
 	task_cons->tss.cs = 2 * 8;
@@ -224,6 +225,7 @@ void HariMain(void)
 	task_cons->tss.fs = 1 * 8;
 	task_cons->tss.gs = 1 * 8;
 	*((int *)(task_cons->tss.esp + 4)) = (int)sht_cons;
+	*((int *)(task_cons->tss.esp + 8)) = memtotal;
 	task_run(task_cons, 2, 2);
 
 	/* ƒ}ƒEƒX */
@@ -323,16 +325,25 @@ void HariMain(void)
 						}
 					}else buffer_put(&task_cons->buf, TAG_KEYBOARD, 8);
 				}
+				if(dat.data == 0x1c){
+					if(key_to != 0) buffer_put(&task_cons->buf, TAG_KEYBOARD, 10);
+				}
 				/* Tab */
 				if(dat.data == 0x0f){
 					if(key_to == 0){
 						key_to = 1;
 						make_wtitle(sht_win3, "textbox",  0);
 						make_wtitle(sht_cons, "console",  1);
+						cursor_c = invisible_cursor;
+						boxfill(VMODE_WINDOW, sht_win3->buf, WINDOW_SCLINE(sht_win3), white, cursor_x, 28, cursor_x + 7, 43);
+						sheet_refresh(sht_win3, cursor_x, 28, cursor_x + 8, 44);
+						buffer_put(&task_cons->buf, 0, 2);
 					}else{
 						key_to = 0;
 						make_wtitle(sht_win3, "textbox",  1);
 						make_wtitle(sht_cons, "console",  0);
+						cursor_c = black;
+						buffer_put(&task_cons->buf, 0, 3);
 					}
 					sheet_refresh(sht_win3, 0, 0, sht_win3->bxsize, 21);
 					sheet_refresh(sht_cons, 0, 0, sht_cons->bxsize, 21);
@@ -368,8 +379,10 @@ void HariMain(void)
 					wait_KBC_sendready();
 					io_out8(PORT_KEYDAT, keycmd_wait);
 				}
-				boxfill(VMODE_WINDOW, buf_win3, WINDOW_SCLINE(sht_win3), cursor_c, cursor_x, 28, cursor_x + 7, 43);
-				sheet_refresh(sht_win3, cursor_x, 28, cursor_x + 8, 44);
+				if(cursor_c.alpha != 0x00){
+					boxfill(VMODE_WINDOW, buf_win3, WINDOW_SCLINE(sht_win3), cursor_c, cursor_x, 28, cursor_x + 7, 43);
+					sheet_refresh(sht_win3, cursor_x, 28, cursor_x + 8, 44);
+				}
 			}
 			if(dat.tag == TAG_RTC){
 				lt = readrtc();
@@ -408,9 +421,11 @@ void HariMain(void)
 			}
 			if(dat.tag == TAG_TIMER){
 				if(dat.data == 0 || dat.data == 1){
-					boxfill(VMODE_WINDOW, buf_win3, WINDOW_SCLINE(sht_win3), cursor_c, cursor_x, 28, cursor_x + 7, 43);
-					cursor_c = dat.data == 0 ? black : white;
-					sheet_refresh(sht_win3, cursor_x, 28, cursor_x + 8, 44);
+					if(cursor_c.alpha != 0x00){
+						boxfill(VMODE_WINDOW, buf_win3, WINDOW_SCLINE(sht_win3), cursor_c, cursor_x, 28, cursor_x + 7, 43);
+						cursor_c = dat.data == 0 ? black : white;
+						sheet_refresh(sht_win3, cursor_x, 28, cursor_x + 8, 44);
+					}
 					timer_init(timer, &buffer, dat.data == 0 ? 1 : 0);
 					timer_settime(timer, 50);
 				}
@@ -593,16 +608,21 @@ void make_textbox(struct SHEET *sht, int x0, int y0, int sx, int sy, struct colo
 	return;
 }
 
-void console_task(struct SHEET *sht)
+int cons_newline(int cursor_y, struct SHEET *sht);
+
+void console_task(struct SHEET *sht, unsigned int memtotal)
 {
 	struct TASK *task = task_now();
 	struct TIMER *timer;
 	struct BUFDATA dat;
 	struct color black = {0x00, 0x00, 0x00, 0xff};
 	struct color white = {0xff, 0xff, 0xff, 0xff};
-	struct color cursor_c = black;
-	char s[2];
-	int cursor_x = 16;
+	struct color invisible_cursor = {0x00, 0x00, 0x00, 0x00};
+	struct color light_green = {0x00, 0xff, 0xff, 0xff};
+	struct color cursor_c = invisible_cursor;
+	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
+	char s[30], cmdline[30];
+	int cursor_x = 16, cursor_y = 28, x, y;
 
 	buffer_init(&task->buf, 128, task);
 
@@ -620,32 +640,108 @@ void console_task(struct SHEET *sht)
 		}else{
 			dat = buffer_get(&task->buf);
 			io_sti();
+			if(dat.tag == 0){
+				if(dat.data == 2) cursor_c = white;
+				if(dat.data == 3){
+					boxfill(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), black, cursor_x, cursor_y, cursor_x + 7, cursor_y + 15);
+					cursor_c = invisible_cursor;
+				}
+			}
 			if(dat.tag == TAG_KEYBOARD){
 				if(dat.data == 8){
 					if(cursor_x > 16){
-						putfontstr_sht_ref(sht, cursor_x, 28, white, black, " ");
+						putfontstr_sht_ref(sht, cursor_x, cursor_y, white, black, " ");
 						cursor_x -= 8;
 					}
+				}else if(dat.data == 10){
+					putfontstr_sht_ref(sht, cursor_x, cursor_y, white, black, " ");
+					cmdline[cursor_x / 8 - 2] = 0;
+					cursor_y = cons_newline(cursor_y, sht);
+
+					if(!strcmp(cmdline, "mem")){
+						if(memtotal / (1024 * 1024) >= 1024) sprintf(s, "total   %dGB", memtotal / (1024 * 1024 * 1024));
+						else sprintf(s, "total   %dMB", memtotal / (1024 * 1024));
+						putfontstr_sht_ref(sht, 8, cursor_y, white, black, s);
+						cursor_y = cons_newline(cursor_y, sht);
+						if(memman_total(memman) / 1024 >= 1024) sprintf(s, "free    %dMB", memman_total(memman) / (1024 * 1024));
+						else sprintf(s, "free %dKB", memman_total(memman) / 1024);
+						putfontstr_sht_ref(sht, 8, cursor_y, white, black, s);
+						cursor_y = cons_newline(cursor_y, sht);
+						cursor_y = cons_newline(cursor_y, sht);
+					}else if(!strcmp(cmdline, "cls") || !strcmp(cmdline, "clear")){
+						for(y = 28; y < 28 + 128; y++){
+							for(x = 8; x < 8 + 240; x++){
+								putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), x, y, black);
+							}
+						}
+						sheet_refresh(sht, 8, 28, 8 + 240, 28 + 128);
+						cursor_y = 28;
+					}else if(!strcmp(cmdline, "neofetch")){
+						sprintf(s, "OS:NNOS 1.0");
+						putfontstr_sht_ref(sht, 8 + 8 * 8, cursor_y, light_green, black, s);
+						cursor_y = cons_newline(cursor_y, sht);
+						sprintf(s, "Model:x86(after i486)");
+						putfontstr_sht_ref(sht, 8 + 8 * 8, cursor_y, light_green, black, s);
+						cursor_y = cons_newline(cursor_y, sht);
+
+						cursor_y = cons_newline(cursor_y, sht);
+					}else if(cmdline[0] != 0){
+						putfontstr_sht_ref(sht, 8, cursor_y, white, black, "Bad command.");
+						cursor_y = cons_newline(cursor_y, sht);
+						cursor_y = cons_newline(cursor_y, sht);
+					}
+
+					putfontstr_sht_ref(sht, 8, cursor_y, white, black, ">");
+					cursor_x = 16;
 				}else{
 					if(cursor_x < 240){
 						s[0] = dat.data;
 						s[1] = 0;
-						putfontstr_sht_ref(sht, cursor_x, 28, white, black, s);
+						cmdline[cursor_x / 8 - 2] = dat.data;
+						putfontstr_sht_ref(sht, cursor_x, cursor_y, white, black, s);
 						cursor_x += 8;
 					}
 				}
 			}
 			if(dat.tag == TAG_TIMER){
 				if(dat.data == 0 || dat.data == 1){
-					timer_init(timer, &task->buf, (dat.data != 0 ? 0 : 1));
-					cursor_c = (dat.data != 0 ? white : black);
-					boxfill(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), cursor_c, cursor_x, 28, cursor_x + 7, 43);
+					if(cursor_c.alpha != 0x00){
+						timer_init(timer, &task->buf, (dat.data != 0 ? 0 : 1));
+						cursor_c = (dat.data != 0 ? white : black);
+					}
 					timer_settime(timer, 50);
-					sheet_refresh(sht, cursor_x, 28, cursor_x + 8, 44);
 				}
 			}
-			boxfill(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), cursor_c, cursor_x, 28, cursor_x + 7, 43);
-			sheet_refresh(sht, cursor_x, 28, cursor_x + 8, 44);
+			if(cursor_c.alpha != 0x00) boxfill(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), cursor_c, cursor_x, cursor_y, cursor_x + 7, cursor_y + 15);
+			sheet_refresh(sht, cursor_x, cursor_y, cursor_x + 8, cursor_y + 16);
 		}
 	}
+}
+
+int cons_newline(int cursor_y, struct SHEET *sht)
+{
+	struct color black = {0x00, 0x00, 0x00, 0xff};
+	int x, y;
+
+	if(cursor_y < 28 + 112) cursor_y += 16;
+	else{
+		for(y = 28; y < 28 + 112; y++){
+			for(x = 8; x < 8 + 240; x++){
+				sht->buf[y * WINDOW_SCLINE(sht) + x * VMODE_WINDOW / 8 + 0] = sht->buf[(y + 16) * WINDOW_SCLINE(sht) + x * VMODE_WINDOW / 8 + 0];
+				sht->buf[y * WINDOW_SCLINE(sht) + x * VMODE_WINDOW / 8 + 1] = sht->buf[(y + 16) * WINDOW_SCLINE(sht) + x * VMODE_WINDOW / 8 + 1];
+				sht->buf[y * WINDOW_SCLINE(sht) + x * VMODE_WINDOW / 8 + 2] = sht->buf[(y + 16) * WINDOW_SCLINE(sht) + x * VMODE_WINDOW / 8 + 2];
+				sht->buf[y * WINDOW_SCLINE(sht) + x * VMODE_WINDOW / 8 + 3] = sht->buf[(y + 16) * WINDOW_SCLINE(sht) + x * VMODE_WINDOW / 8 + 3];
+			}
+		}
+
+		for(y = 28 + 112; y < 28 + 128; y++){
+			for(x = 8; x < 8 + 240; x++){
+				putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), x, y, black);
+			}
+		}
+
+		sheet_refresh(sht, 8, 28, 8 + 240, 28 + 128);
+	}
+
+	return cursor_y;
 }
