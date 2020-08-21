@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "bootpack.h"
 
 /* 10ƒNƒƒbƒN‘Ò‚Â */
@@ -32,5 +33,18 @@ void send_data(unsigned char data)
 void send_string(char *string)
 {
 	for(; *string != 0x00; string++) send_data(*string);
+	return;
+}
+
+void printlog(char *format, ...)
+{
+	va_list va;
+	char s[1000];
+
+	va_start(va, format);
+	vsprintf(s, format, va);
+	send_string(s);
+	va_end(va);
+
 	return;
 }

@@ -20,6 +20,9 @@ void asm_inthandler27(void);
 void asm_inthandler28(void);
 void asm_inthandler2c(void);
 
+#define ADR_BOOTINFO	0x00000ff0
+#define ADR_DISKIMG		0x00100000
+
 struct BOOTINFO
 {
 	char cyls, leds, vmode, reserve;
@@ -77,6 +80,7 @@ struct GATE_DESCRIPTOR
 void init_gdtidt(void);
 void set_segmdesc(struct SEGMENT_DESCRIPTOR *sd, unsigned int limit, int base, int ar);
 void set_gatedesc(struct GATE_DESCRIPTOR *gd, int offset, int selector, int ar);
+void init_pic(void);
 
 #define ADR_IDT			0x0026f800
 #define LIMIT_IDT		0x000007ff
@@ -261,3 +265,28 @@ struct TASK *task_alloc(void);
 void task_run(struct TASK *task, int level, int priority);
 void task_switch(void);
 void task_sleep(struct TASK *task);
+
+void console_task(struct SHEET *sht, unsigned int memtotal);
+int cons_newline(int cursor_y, struct SHEET *sht);
+
+struct FILEINFO
+{
+	unsigned char name[8], ext[3], type;
+	char reserve[10];
+	unsigned short time, date, clustno;
+	unsigned int size;
+};
+
+void file_readfat(int *fat, unsigned char *img);
+void file_loadfile(int clustno, int size, char *buf, int *fat, char *img);
+
+void make_wtitle(struct SHEET *sht, char *title, char act);
+void make_window(struct SHEET *sht, char *title, char act);
+void putfontstr_sht(struct SHEET *sht, int x, int y, struct color c, struct color bc, char *s);
+void putfontstr_sht_ref(struct SHEET *sht, int x, int y, struct color c, struct color bc, char *s);
+void make_textbox(struct SHEET *sht, int x0, int y0, int sx, int sy, struct color c);
+
+void wait_KBC_sendready(void);
+void init_keyboard(void);
+void enable_mouse(struct MOUSE_DEC *mdec);
+int mouse_decode(struct MOUSE_DEC *mdec, unsigned char dat);

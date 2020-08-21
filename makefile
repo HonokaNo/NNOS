@@ -11,6 +11,8 @@ nnos.img : nnos/ipl.bin nnos/nnos.sys Makefile
 	$(EDIMG)   imgin:$(TOOLPATH)fdimg0at.tek \
 		wbinimg src:nnos/ipl.bin len:512 from:0 to:0 \
 		copy from:nnos/nnos.sys to:@: \
+		copy from:nnos/ipl.nas to:@: \
+		copy from:nnos/make.bat to:@: \
 		imgout:nnos.img
 
 # コマンド
