@@ -8,3 +8,56 @@ command list:
 
 	neofetch
 		環境の表示を行います。
+
+	dir | ls
+		存在するすべてのファイルを表示します。
+
+	type | cat
+		ファイルの内容を出力します。
+
+API list:
+
+	1.putchar
+		edx:1
+		eax:char
+
+	2.putstring0
+		edx:2
+		ebx:string pointer
+
+	3.putstring1
+		edx:3
+		ebx:string pointer
+		ecx:string length
+
+	4.exit application
+		edx:4
+
+	5.make window
+		edx:5
+		ebx:window buffer
+		esi:window width
+		edi:window height
+		ecx:window title pointer
+
+		return:
+
+		eax:window number
+
+		note:ウィンドウバッファは画面のビット数に関係なく
+		ウィンドウ面積の4倍必要です
+
+	6.put string window
+		ebx:sheet num
+		esi:position x
+		edi:position y
+		eax:color data
+		ebp:string pointer
+
+	7.box fill window
+		ebx:sheet num
+		ebp:color data
+		eax:x0
+		ecx:y0
+		esi:x1
+		edi:y1

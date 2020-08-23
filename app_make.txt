@@ -1,0 +1,52 @@
+include ../configure.txt
+
+default :
+	$(MAKE) $(APP).hrb
+
+$(APP).bim : $(APP).obj ../nnos/a_nask.obj Makefile ../app_make.txt
+	$(OBJ2BIM) @$(RULEFILE) out:$(APP).bim map:$(APP).map stack:$(STACK) \
+		$(APP).obj ../nnos/a_nask.obj
+
+nnos.img : ../nnos/ipl.bin ../nnos/nnos.sys $(APP).hrb \
+		Makefile ../app_make.txt
+	$(EDIMG)   imgin:$(TOOLPATH)fdimg0at.tek \
+		wbinimg src:../nnos/ipl.bin len:512 from:0 to:0 \
+		copy from:../nnos/nnos.sys to:@: \
+		copy from:$(APP).hrb to:@: \
+		imgout:$@
+
+%.gas : %.c ../nnos.h Makefile ../app_make.txt
+	$(CC1) -o $*.gas $*.c
+
+%.nas : %.gas Makefile ../app_make.txt
+	$(GAS2NASK) $*.gas $*.nas
+
+%.obj : %.nas Makefile ../app_make.txt
+	$(NASK) $*.nas $*.obj $*.lst
+
+%.hrb : %.bim Makefile ../app_make.txt
+	$(BIM2HRB) $*.bim $*.hrb $(MALLOC)
+
+run :
+	$(MAKE) nnos.img
+	$(COPY) $(TOOLPATH)qemu/fdimage0.bin
+	$(MAKE) -C $(TOOLPATH)qemu
+
+full :
+	$(MAKE) -C nnos a_nask.obj
+	$(MAKE) $(APP).hrb
+
+run_full :
+	$(MAKE) -C nnos a_nask.obj
+	$(MAKE) -C ../nnos
+	$(MAKE) run
+
+clean :
+	-$(DEL) *.lst
+	-$(DEL) *.obj
+	-$(DEL) *.bim
+	-$(DEL) *.map
+
+src_only :
+	$(MAKE) clean
+	-$(DEL) $(APP).hrb

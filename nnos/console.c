@@ -155,8 +155,8 @@ void cons_runcmd(char *cmdline, struct CONSOLE *cons, int *fat, unsigned memtota
 	if(!strcmp(cmdline, "mem")) cmd_mem(cons, memtotal);
 	else if(!strcmp(cmdline, "cls") || !strcmp(cmdline, "clear")) cmd_cls(cons);
 	else if(!strcmp(cmdline, "neofetch")) cmd_neofetch(cons);
-	else if(!strcmp(cmdline, "dir")) cmd_dir(cons);
-	else if(!strncmp(cmdline, "type ", 5)) cmd_type(cons, fat, cmdline);
+	else if(!strcmp(cmdline, "dir") || !strcmp(cmdline, "ls")) cmd_dir(cons);
+	else if(!strncmp(cmdline, "type ", 5) || !strcmp(cmdline, "cat")) cmd_type(cons, fat, cmdline);
 	else if(cmdline[0] != 0){
 		if(cmd_app(cons, fat, cmdline) == 0){
 			cons_putstr0(cons, "Bad command.\n\n");
@@ -303,12 +303,41 @@ int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline)
 
 int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax)
 {
-	int cs_base = *((int *)0xfe8);
+	int ds_base = *((int *)0xfe8);
 	struct TASK *task = task_now();
 	struct CONSOLE *cons = (struct CONSOLE *)*((int *)0x0fec);
+	struct SHTCTL *shtctl = (struct SHTCTL *)*((int *)0x0fe4);
+	struct SHEET *sht;
+	struct color c;
+	int *reg = &eax + 1;
+		/* reg[0] : EDI reg[1] : ESI reg[2] : EBP reg[3] : ESP */
+		/* reg[4] ; EBX reg[5] : EDX reg[6] : ECX reg[7] : EAX */
+
 	if(edx == 1) cons_putchar(cons, eax & 0xff, 1);
-	if(edx == 2) cons_putstr0(cons, (char *)ebx + cs_base);
-	if(edx == 3) cons_putstr1(cons, (char *)ebx + cs_base, ecx);
+	if(edx == 2) cons_putstr0(cons, (char *)ebx + ds_base);
+	if(edx == 3) cons_putstr1(cons, (char *)ebx + ds_base, ecx);
 	if(edx == 4) return &(task->tss.esp0);
+	if(edx == 5){
+		sht = sheet_alloc(shtctl);
+		sheet_setbuf(sht, (char *)ebx + ds_base, esi, edi);
+		make_window(sht, (char *)(ecx + ds_base), 0);
+		sheet_slide(sht, 100, 50);
+		sheet_updown(sht, 3);
+		reg[7] = (int)sht;
+	}
+	if(edx == 6){
+		sht = (struct SHEET *)ebx;
+		c = *((struct color *)(eax + ds_base));
+		putfontstr(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), esi, edi, c, (char *)(ebp + ds_base));
+		sheet_refresh(sht, esi, edi, esi + strlen((char *)(ebp + ds_base)) * 8, edi + 16);
+	}
+	if(edx == 7){
+		sht = (struct SHEET *)ebx;
+		c = *((struct color *)(ebp + ds_base));
+		printlog("api 0x07 color %02X %02X %02X %02X\n", c.r, c.g, c.b, c.alpha);
+		printlog("api 0x07 fill %d %d %d %d\n", eax, ecx, esi, edi);
+		boxfill(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), c, eax, ecx, esi, edi);
+		sheet_refresh(sht, eax, ecx, esi + 1, edi + 1);
+	}
 	return 0;
 }

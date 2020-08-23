@@ -94,6 +94,7 @@ void HariMain(void)
 	}else back = back24;
 
 	shtctl = shtctl_init(memman, binfo->vram, binfo->scrnx, binfo->scrny);
+	*((int *)0x0fe4) = (int)shtctl;
 
 	/* îwåi */
 	sht_back = sheet_alloc(shtctl);

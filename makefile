@@ -7,13 +7,15 @@ default :
 
 # ファイル生成規則
 
-nnos.img : nnos/ipl.bin nnos/nnos.sys Makefile
+nnos.img : nnos/ipl.bin nnos/nnos.sys Makefile \
+		winhelo/winhelo.hrb
 	$(EDIMG)   imgin:$(TOOLPATH)fdimg0at.tek \
 		wbinimg src:nnos/ipl.bin len:512 from:0 to:0 \
 		copy from:nnos/nnos.sys to:@: \
 		copy from:nnos/ipl.nas to:@: \
 		copy from:nnos/make.bat to:@: \
-		copy from:nnos/hello2.hrb to:@: \
+		copy from:winhelo/winhelo.hrb to:@: \
+		copy from:winhelo2/winhelo2.hrb to:@: \
 		imgout:nnos.img
 
 # コマンド
@@ -25,6 +27,9 @@ run :
 
 full :
 	$(MAKE) -C nnos
+	$(MAKE) -C nnos a_nask.obj
+	$(MAKE) -C winhelo
+	$(MAKE) -C winhelo2
 	$(MAKE) nnos.img
 
 run_full :
@@ -45,9 +50,13 @@ src_only :
 
 clean_full :
 	$(MAKE) -C nnos		clean
+	$(MAKE) -C winhelo	clean
+	$(MAKE) -C winhelo2	clean
 
 src_only_full :
 	$(MAKE) -C nnos		src_only
+	$(MAKE) -C winhelo	src_only
+	$(MAKE) -C winhelo2	src_only
 	-$(DEL) nnos.img
 
 refresh :
