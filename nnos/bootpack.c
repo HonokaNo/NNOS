@@ -30,6 +30,7 @@ void HariMain(void)
 	struct TIMER *timer;
 	struct TASK *task_a, *task_cons;
 	struct BUFFER keycmd;
+	struct CONSOLE *cons;
 	int key_to = 0, key_shift = 0, key_leds = (binfo->leds >> 4) & 7, keycmd_wait = -1;
 
 	static char keytable0[0x80] = {
@@ -292,6 +293,14 @@ void HariMain(void)
 					key_leds ^= 1;
 					buffer_put(&keycmd, TAG_KEYBOARD, KEYCMD_LED);
 					buffer_put(&keycmd, TAG_KEYBOARD, key_leds);
+				}
+				if(dat.data == 0x3b && key_shift != 0 && task_cons->tss.ss0 != 0){
+					cons = (struct CONSOLE *)*((int *)0x0fec);
+					cons_putstr0(cons, "\nBreak(key) :\n");
+					io_cli();
+					task_cons->tss.eax = (int)&(task_cons->tss.esp0);
+					task_cons->tss.eip = (int)asm_end_app;
+					io_sti();
 				}
 				if(dat.data == 0xfa) keycmd_wait = -1;
 				if(dat.data == 0xfe){

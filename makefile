@@ -13,6 +13,7 @@ nnos.img : nnos/ipl.bin nnos/nnos.sys Makefile
 		copy from:nnos/nnos.sys to:@: \
 		copy from:nnos/ipl.nas to:@: \
 		copy from:nnos/make.bat to:@: \
+		copy from:nnos/hello2.hrb to:@: \
 		imgout:nnos.img
 
 # コマンド

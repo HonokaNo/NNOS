@@ -1,4 +1,5 @@
 #include "bootpack.h"
+#include <string.h>
 
 void make_wtitle(struct SHEET *sht, char *title, char act)
 {

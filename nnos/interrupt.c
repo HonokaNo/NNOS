@@ -1,4 +1,5 @@
 #include "bootpack.h"
+#include <stdio.h>
 
 extern struct BUFFER buffer;
 
@@ -22,6 +23,28 @@ void init_pic(void)
 	io_out8(PIC1_IMR, 0xff);
 
 	return;
+}
+
+int *inthandler0c(int *esp)
+{
+	struct CONSOLE *cons = (struct CONSOLE *)*((int *)0x0fec);
+	struct TASK *task = task_now();
+	char s[30];
+	cons_putstr0(cons, "\nINT 0c :\n Stack Exception.\n");
+	sprintf(s, "EIP = %08X\n", esp[11]);
+	cons_putstr0(cons, s);
+	return &(task->tss.esp0);
+}
+
+int *inthandler0d(int *esp)
+{
+	struct CONSOLE *cons = (struct CONSOLE *)*((int *)0x0fec);
+	struct TASK *task = task_now();
+	char s[30];
+	cons_putstr0(cons, "\nINT 0d :\n General Protected Exception.\n");
+	sprintf(s, "EIP = %08X\n", esp[11]);
+	cons_putstr0(cons, s);
+	return &(task->tss.esp0);
 }
 
 /* timer */

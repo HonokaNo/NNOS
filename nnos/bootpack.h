@@ -13,12 +13,19 @@ void store_cr0(int cr0);
 void load_tr(int tr);
 unsigned int memtest_sub(unsigned int start, unsigned int end);
 void farjmp(int eip, int cs);
+void farcall(int eip, int cs);
+void start_app(int eip, int cs, int esp, int ds, int *tss_esp0);
+void asm_end_app(void);
 
+void asm_inthandler0c(void);
+void asm_inthandler0d(void);
 void asm_inthandler20(void);
 void asm_inthandler21(void);
 void asm_inthandler27(void);
 void asm_inthandler28(void);
 void asm_inthandler2c(void);
+
+void asm_hrb_api(void);
 
 #define ADR_BOOTINFO	0x00000ff0
 #define ADR_DISKIMG		0x00100000
@@ -229,7 +236,7 @@ void timer_settime(struct TIMER *timer, unsigned int timeout);
 
 struct TSS32
 {
-	int backlink, esp09, ss0, esp1, ss1, esp2, ss2, cr3;
+	int backlink, esp0, ss0, esp1, ss1, esp2, ss2, cr3;
 	int eip, eflags, eax, ecx, edx, ebx, esp, ebp, esi, edi;
 	int es, cs, ss, ds, fs, gs;
 	int ldtr, iomap;
@@ -266,8 +273,26 @@ void task_run(struct TASK *task, int level, int priority);
 void task_switch(void);
 void task_sleep(struct TASK *task);
 
+struct CONSOLE
+{
+	struct SHEET *sht;
+	int cur_x, cur_y;
+	struct color cur_c;
+};
+
 void console_task(struct SHEET *sht, unsigned int memtotal);
-int cons_newline(int cursor_y, struct SHEET *sht);
+void cons_putchar(struct CONSOLE *cons, int chr, char move);
+void cons_newline(struct CONSOLE *cons);
+void cons_putstr0(struct CONSOLE *cons, char *s);
+void cons_putstr1(struct CONSOLE *cons, char *s, int l);
+void cons_runcmd(char *cmdline, struct CONSOLE *cons, int *fat, unsigned memtotal);
+void cmd_mem(struct CONSOLE *cons, unsigned int memtotal);
+void cmd_cls(struct CONSOLE *cons);
+void cmd_neofetch(struct CONSOLE *cons);
+void cmd_dir(struct CONSOLE *cons);
+void cmd_type(struct CONSOLE *cons, int *fat, char *cmdline);
+int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline);
+int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax);
 
 struct FILEINFO
 {
@@ -279,6 +304,7 @@ struct FILEINFO
 
 void file_readfat(int *fat, unsigned char *img);
 void file_loadfile(int clustno, int size, char *buf, int *fat, char *img);
+struct FILEINFO *file_search(char *name, struct FILEINFO *finfo, int max);
 
 void make_wtitle(struct SHEET *sht, char *title, char act);
 void make_window(struct SHEET *sht, char *title, char act);
