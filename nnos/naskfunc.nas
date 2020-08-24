@@ -15,6 +15,10 @@
 		GLOBAL	_farjmp
 		GLOBAL	_farcall
 		GLOBAL	_start_app
+		GLOBAL	_asm_hrb_api
+		GLOBAL	_asm_end_app
+
+		EXTERN	_hrb_api
 
 [SECTION .text]
 
@@ -151,3 +155,26 @@ _start_app:		; void start_app(int eip, int cs, int esp, int ds, int *tss_esp0);
 		push	ecx
 		push	eax
 		retf
+
+_asm_hrb_api:
+		sti
+		push	ds
+		push	es
+		pushad
+		pushad
+		mov		ax,ss
+		mov		ds,ax
+		mov		es,ax
+		call	_hrb_api
+		cmp		eax,0
+		jne		_asm_end_app
+		add		esp,32
+		popad
+		pop		es
+		pop		ds
+		iretd
+_asm_end_app:
+		mov		esp,[eax]
+		mov		dword [eax+4],0
+		popad
+		ret

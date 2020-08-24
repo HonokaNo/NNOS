@@ -278,6 +278,7 @@ struct CONSOLE
 	struct SHEET *sht;
 	int cur_x, cur_y;
 	struct color cur_c;
+	struct TIMER *timer;
 };
 
 void console_task(struct SHEET *sht, unsigned int memtotal);

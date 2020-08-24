@@ -1,3 +1,6 @@
+memo:
+	MALLOCには取得するメモリ量+12kを指定する必要がある
+
 command list:
 
 	mem
@@ -48,16 +51,84 @@ API list:
 		ウィンドウ面積の4倍必要です
 
 	6.put string window
+		edx:6
 		ebx:sheet num
 		esi:position x
 		edi:position y
 		eax:color data
 		ebp:string pointer
 
+		(warn1)
+
 	7.box fill window
+		edx:7
 		ebx:sheet num
 		ebp:color data
 		eax:x0
 		ecx:y0
 		esi:x1
 		edi:y1
+
+		(warn1)
+
+	8.init malloc
+		edx:8
+		ebx:[cs:0x0020]
+		eax:ebx + 12k(12016B)
+		ecx:[cs:0x0000] - eax
+
+	9.malloc
+		edx:9
+		ebx:[cs:0x0020]
+		ecx:alloc bytes
+		eax:alloc address
+
+	10.free
+		edx:10
+		ebx:[cs:0x0020]
+		eax:free address
+		ecx:free bytes
+
+	11.draw pixel
+		edx:11
+		ebx:sheet num
+		esi:x
+		edi:y
+		eax:color data
+
+		(warn1)
+
+	12.sheet refresh
+		edx:12
+		ebx:sheet num
+		eax:x0
+		ecx:y0
+		esi:x1
+		edi:y1
+
+	13.draw line
+		edx:13
+		ebx:sheet num
+		eax:x0
+		ecx:y0
+		esi:x1
+		edi:y1
+		ebp:color data
+
+		(warn1)
+
+	14.close window
+		edx:14
+		ebx:sheet num
+
+	15.get key data
+		edx:15
+		eax:mode 0=データがなければ-1 1=データが来るまでスリープ
+
+		return:
+
+		eax:keydata mode=0かつデータがなければ-1
+
+(warn1):
+	(warn1)がついている関数では描画ごとにrefreshされます。
+	自動でrefreshを行わない場合、ebx(sheet num)に1を足して指定してください。

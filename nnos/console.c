@@ -5,7 +5,6 @@
 void console_task(struct SHEET *sht, unsigned int memtotal)
 {
 	struct TASK *task = task_now();
-	struct TIMER *timer;
 	struct BUFDATA dat;
 	struct color black = {0x00, 0x00, 0x00, 0xff};
 	struct color white = {0xff, 0xff, 0xff, 0xff};
@@ -22,9 +21,9 @@ void console_task(struct SHEET *sht, unsigned int memtotal)
 
 	buffer_init(&task->buf, 128, task);
 
-	timer = timer_alloc();
-	timer_init(timer, &task->buf, 1);
-	timer_settime(timer, 50);
+	cons.timer = timer_alloc();
+	timer_init(cons.timer, &task->buf, 1);
+	timer_settime(cons.timer, 50);
 
 	file_readfat(fat, (unsigned char *)(ADR_DISKIMG + 0x200));
 
@@ -68,11 +67,11 @@ void console_task(struct SHEET *sht, unsigned int memtotal)
 			}
 			if(dat.tag == TAG_TIMER){
 				if(dat.data == 0 || dat.data == 1){
-					timer_init(timer, &task->buf, (dat.data != 0 ? 0 : 1));
+					timer_init(cons.timer, &task->buf, (dat.data != 0 ? 0 : 1));
 					if(cons.cur_c.alpha != 0x00){
 						cons.cur_c = (dat.data != 0 ? white : black);
 					}
-					timer_settime(timer, 50);
+					timer_settime(cons.timer, 50);
 				}
 			}
 			if(cons.cur_c.alpha != 0x00) boxfill(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), cons.cur_c, cons.cur_x, cons.cur_y, cons.cur_x + 7, cons.cur_y + 15);
@@ -301,6 +300,8 @@ int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline)
 	return 0;
 }
 
+void hrb_api_linewin(struct SHEET *sht, int x0, int y0, int x1, int y1, struct color c);
+
 int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax)
 {
 	int ds_base = *((int *)0xfe8);
@@ -308,7 +309,10 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 	struct CONSOLE *cons = (struct CONSOLE *)*((int *)0x0fec);
 	struct SHTCTL *shtctl = (struct SHTCTL *)*((int *)0x0fe4);
 	struct SHEET *sht;
+	struct color white = {0xff, 0xff, 0xff, 0xff};
+	struct color invisible_cursor = {0x00, 0x00, 0x00, 0x00};
 	struct color c;
+	struct BUFDATA dat;
 	int *reg = &eax + 1;
 		/* reg[0] : EDI reg[1] : ESI reg[2] : EBP reg[3] : ESP */
 		/* reg[4] ; EBX reg[5] : EDX reg[6] : ECX reg[7] : EAX */
@@ -326,18 +330,110 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 		reg[7] = (int)sht;
 	}
 	if(edx == 6){
-		sht = (struct SHEET *)ebx;
+		sht = (struct SHEET *)(ebx & 0xfffffffe);
 		c = *((struct color *)(eax + ds_base));
 		putfontstr(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), esi, edi, c, (char *)(ebp + ds_base));
 		sheet_refresh(sht, esi, edi, esi + strlen((char *)(ebp + ds_base)) * 8, edi + 16);
 	}
 	if(edx == 7){
-		sht = (struct SHEET *)ebx;
+		sht = (struct SHEET *)(ebx & 0xfffffffe);
 		c = *((struct color *)(ebp + ds_base));
-		printlog("api 0x07 color %02X %02X %02X %02X\n", c.r, c.g, c.b, c.alpha);
-		printlog("api 0x07 fill %d %d %d %d\n", eax, ecx, esi, edi);
 		boxfill(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), c, eax, ecx, esi, edi);
 		sheet_refresh(sht, eax, ecx, esi + 1, edi + 1);
 	}
+	if(edx == 8){
+		memman_init((struct MEMMAN *)(ebx + ds_base));
+		ecx &= 0xfffffff0;
+		memman_free((struct MEMMAN *)(ebx + ds_base), eax, ecx);
+	}
+	if(edx == 9){
+		ecx = (ecx + 0x0f) & 0xfffffff0;
+		reg[7] = memman_alloc((struct MEMMAN *)(ebx + ds_base), ecx);
+	}
+	if(edx == 10){
+		ecx = (ecx + 0x0f) & 0xfffffff0;
+		memman_free((struct MEMMAN *)(ebx + ds_base), eax, ecx);
+	}
+	if(edx == 11){
+		sht = (struct SHEET *)(ebx & 0xfffffffe);
+		c = *((struct color *)(eax + ds_base));
+		putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), esi, edi, c);
+		if((ebx & 1) == 0) sheet_refresh(sht, esi, edi, esi + 1, edi + 1);
+	}
+	if(edx == 12){
+		sht = (struct SHEET *)ebx;
+		sheet_refresh(sht, eax, ecx, esi, edi);
+	}
+	if(edx == 13){
+		sht = (struct SHEET *)(ebx & 0xfffffffe);
+		c = *((struct color *)(ebp + ds_base));
+		hrb_api_linewin(sht, eax, ecx, esi, edi, c);
+		if((ebx & 1) == 0) sheet_refresh(sht, eax, ecx, esi + 1, edi + 1);
+	}
+	if(edx == 14) sheet_free((struct SHEET *)ebx);
+	if(edx == 15){
+		for(;;){
+			io_cli();
+			if(buffer_status(&task->buf) == 0){
+				if(eax != 0) task_sleep(task);
+				else{
+					io_sti();
+					reg[7] = -1;
+					return 0;
+				}
+			}
+
+			dat = buffer_get(&task->buf);
+			io_sti();
+			if(dat.tag == 0){
+				if(dat.data == 0 || dat.data == 1){
+					timer_init(cons->timer, &task->buf, 1);
+					timer_settime(cons->timer, 50);
+				}
+				if(dat.data == 2) cons->cur_c = white;
+				if(dat.data == 3) cons->cur_c = invisible_cursor;
+			}else if(dat.tag == TAG_KEYBOARD){
+				reg[7] = dat.data;
+				return 0;
+			}
+		}
+	}
+
 	return 0;
+}
+
+void hrb_api_linewin(struct SHEET *sht, int x0, int y0, int x1, int y1, struct color c)
+{
+	int i, x, y, dx, dy, len;
+
+	dx = x1 - x0;
+	dy = y1 - y0;
+	x = x0 << 10;
+	y = y0 << 10;
+	if(dx < 0) dx = -dx;
+	if(dy < 0) dy = -dy;
+
+	if(dx >= dy){
+		len = dx + 1;
+
+		if(x0 > x1) dx = -1024;
+		else dx = 1024;
+
+		if(y0 <= y1) dy = ((y1 - y0 + 1) << 10) / len;
+		else dy = ((y1 - y0 - 1) << 10) / len;
+	}else{
+		len = dy + 1;
+
+		if(y0 > y1) dy = -1024;
+		else dy = 1024;
+
+		if(x0 <= x1) dx = ((x1 - x0 + 1) << 10) / len;
+		else dx = ((x1 - x0 - 1) << 10) / len;
+	}
+
+	for(i = 0; i < len; i++){
+		putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), (x >> 10), (y >> 10), c);
+		x += dx;
+		y += dy;
+	}
 }
