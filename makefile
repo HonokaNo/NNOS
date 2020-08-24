@@ -10,7 +10,7 @@ default :
 nnos.img : nnos/ipl.bin nnos/nnos.sys Makefile \
 		winhelo/winhelo.hrb winhelo2/winhelo2.hrb winhelo3/winhelo3.hrb \
 		star1/star1.hrb stars/stars.hrb stars2/stars2.hrb \
-		lines/lines.hrb
+		lines/lines.hrb walk/walk.hrb
 	$(EDIMG)   imgin:$(TOOLPATH)fdimg0at.tek \
 		wbinimg src:nnos/ipl.bin len:512 from:0 to:0 \
 		copy from:nnos/nnos.sys to:@: \
@@ -23,6 +23,7 @@ nnos.img : nnos/ipl.bin nnos/nnos.sys Makefile \
 		copy from:stars/stars.hrb to:@: \
 		copy from:stars2/stars2.hrb to:@: \
 		copy from:lines/lines.hrb to:@: \
+		copy from:walk/walk.hrb to:@: \
 		imgout:nnos.img
 
 # コマンド
@@ -42,6 +43,7 @@ full :
 	$(MAKE) -C stars
 	$(MAKE) -C stars2
 	$(MAKE) -C lines
+	$(MAKE) -C walk
 	$(MAKE) nnos.img
 
 run_full :
@@ -69,6 +71,7 @@ clean_full :
 	$(MAKE) -C stars	clean
 	$(MAKE) -C stars2	clean
 	$(MAKE) -C lines	clean
+	$(MAKE) -C walk		clean
 
 src_only_full :
 	$(MAKE) -C nnos		src_only
@@ -79,6 +82,7 @@ src_only_full :
 	$(MAKE) -C stars	src_only
 	$(MAKE) -C stars2	src_only
 	$(MAKE) -C lines	src_only
+	$(MAKE) -C walk		src_only
 	-$(DEL) nnos.img
 
 refresh :

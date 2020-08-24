@@ -330,9 +330,13 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 		reg[7] = (int)sht;
 	}
 	if(edx == 6){
+		printlog("0");
 		sht = (struct SHEET *)(ebx & 0xfffffffe);
+		printlog("1");
 		c = *((struct color *)(eax + ds_base));
+		printlog("2");
 		putfontstr(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), esi, edi, c, (char *)(ebp + ds_base));
+		printlog("3");
 		sheet_refresh(sht, esi, edi, esi + strlen((char *)(ebp + ds_base)) * 8, edi + 16);
 	}
 	if(edx == 7){
