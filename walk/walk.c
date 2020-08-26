@@ -11,21 +11,22 @@ void HariMain(void)
 	api_initmalloc();
 	buf = api_malloc(160 * 100 * 4);
 	win = api_openwin(buf, 160, 100, "walk");
-//	api_boxfilwin(win, 4, 24, 155, 95, &black);
+	api_boxfilwin(win, 4, 24, 155, 95, &black);
 	x = 76;
 	y = 56;
+
 	api_putstrwin(win, x, y, &yellow, "*");
 
 	for(;;){
 		i = api_getkey(1);
-//		api_putstrwin(win, x, y, &black, "*");
+		api_putstrwin(win, x, y, &black, "*");
 		if(i == '4' && x >   4) x -= 8;
 		if(i == '6' && x < 148) x += 8;
 		if(i == '8' && y >  24) y -= 8;
 		if(i == '2' && y <  80) y += 8;
 		if(i == 0x0a) break;
 
-//		api_putstrwin(win, x, y, &yellow, "*");
+		api_putstrwin(win, x, y, &yellow, "*");
 	}
 
 	api_closewin(win);

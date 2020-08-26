@@ -25,6 +25,17 @@ void init_pic(void)
 	return;
 }
 
+int *inthandler03(int *esp)
+{
+	struct CONSOLE *cons = (struct CONSOLE *)*((int *)0x0fec);
+	struct TASK *task = task_now();
+	char s[30];
+	cons_putstr0(cons, "\nINT 03 :\n Break Exception.\n");
+	sprintf(s, "EIP = %08X CS = %05d \n", esp[11], esp[12] / 8);
+	cons_putstr0(cons, s);
+	return &(task->tss.esp0);
+}
+
 int *inthandler0c(int *esp)
 {
 	struct CONSOLE *cons = (struct CONSOLE *)*((int *)0x0fec);

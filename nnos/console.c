@@ -245,9 +245,7 @@ void cmd_type(struct CONSOLE *cons, int *fat, char *cmdline)
 		file_loadfile(finfo->clustno, finfo->size, p, fat, (char *)(ADR_DISKIMG + 0x3e00));
 		cons_putstr1(cons, p, finfo->size);
 		memman_free_4k(memman, (int)p, finfo->size);
-	}else{
-		cons_putstr0(cons, "File not found.\n");
-	}
+	}else cons_putstr0(cons, "File not found.\n");
 	cons_newline(cons);
 	return;
 }
@@ -260,6 +258,7 @@ int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline)
 	struct TASK *task = task_now();
 	char name[18], *p, *q;
 	int i, segsiz, datsiz, esp, dathrb;
+	char s[30];
 
 	for(i = 0; i < 13; i++){
 		if(cmdline[i] <= ' ') break;
@@ -280,7 +279,11 @@ int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline)
 	if(finfo != 0){
 		p = (char *)memman_alloc_4k(memman, finfo->size);
 		file_loadfile(finfo->clustno, finfo->size, p, fat, (char *)(ADR_DISKIMG + 0x3e00));
-		if(finfo->size >= 36 && strncmp(p + 4, "Hari", 4) == 0 && *p == 0x00){
+
+		sprintf(s, "%08X\n", p);
+		cons_putstr0(cons, s);
+
+		if(finfo->size >= 36 && !strncmp(p + 4, "Hari", 4) && *p == 0x00){
 			segsiz = *((int *)(p + 0x0000));
 			esp    = *((int *)(p + 0x000c));
 			datsiz = *((int *)(p + 0x0010));
@@ -288,7 +291,7 @@ int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline)
 			q = (char *)memman_alloc_4k(memman, segsiz);
 			*((int *)0xfe8) = (int)q;
 			set_segmdesc(gdt + 1003, finfo->size - 1, (int)p, AR_CODE32_ER + 0x60);
-			set_segmdesc(gdt + 1004, segsiz - 1, (int)q, AR_DATA32_RW + 0x60);
+			set_segmdesc(gdt + 1004, segsiz - 1,      (int)q, AR_DATA32_RW + 0x60);
 			for(i = 0; i < datsiz; i++) q[esp + i] = p[dathrb + i];
 			start_app(0x1b, 1003 * 8, esp, 1004 * 8, &(task->tss.esp0));
 			memman_free_4k(memman, (int)q, segsiz);
@@ -330,13 +333,9 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 		reg[7] = (int)sht;
 	}
 	if(edx == 6){
-		printlog("0");
 		sht = (struct SHEET *)(ebx & 0xfffffffe);
-		printlog("1");
 		c = *((struct color *)(eax + ds_base));
-		printlog("2");
 		putfontstr(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), esi, edi, c, (char *)(ebp + ds_base));
-		printlog("3");
 		sheet_refresh(sht, esi, edi, esi + strlen((char *)(ebp + ds_base)) * 8, edi + 16);
 	}
 	if(edx == 7){

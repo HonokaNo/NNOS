@@ -4,8 +4,8 @@ void file_readfat(int *fat, unsigned char *img)
 {
 	int i, j = 0;
 	for(i = 0; i < 2880; i += 2){
-		fat[i + 0] = (img[j + 0]      | img[j + 1] << 8) & 0xff;
-		fat[i + 1] = (img[j + 1] >> 4 | img[j + 2] << 4) & 0xff;
+		fat[i + 0] = (img[j + 0]      | img[j + 1] << 8) & 0xfff;
+		fat[i + 1] = (img[j + 1] >> 4 | img[j + 2] << 4) & 0xfff;
 		j += 3;
 	}
 	return;

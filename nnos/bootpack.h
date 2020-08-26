@@ -17,6 +17,7 @@ void farcall(int eip, int cs);
 void start_app(int eip, int cs, int esp, int ds, int *tss_esp0);
 void asm_end_app(void);
 
+void asm_inthandler03(void);
 void asm_inthandler0c(void);
 void asm_inthandler0d(void);
 void asm_inthandler20(void);
@@ -26,6 +27,8 @@ void asm_inthandler28(void);
 void asm_inthandler2c(void);
 
 void asm_hrb_api(void);
+
+void debug(void);
 
 #define ADR_BOOTINFO	0x00000ff0
 #define ADR_DISKIMG		0x00100000
