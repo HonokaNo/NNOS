@@ -17,7 +17,6 @@
 		GLOBAL	_start_app
 		GLOBAL	_asm_hrb_api
 		GLOBAL	_asm_end_app
-		GLOBAL	_debug
 
 		EXTERN	_hrb_api
 
@@ -178,8 +177,4 @@ _asm_end_app:
 		mov		esp,[eax]
 		mov		dword [eax+4],0
 		popad
-		ret
-
-_debug:
-		int 3
 		ret

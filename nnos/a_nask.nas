@@ -17,7 +17,11 @@
 		GLOBAL	_api_linewin
 		GLOBAL	_api_closewin
 		GLOBAL	_api_getkey
-		global	_debugmb
+		GLOBAL	_api_alloctimer
+		GLOBAL	_api_inittimer
+		GLOBAL	_api_settimer
+		GLOBAL	_api_freetimer
+		GLOBAL	_api_gettimer
 
 [SECTION .text]
 
@@ -34,6 +38,13 @@ _api_putstr0:		; void api_putstr0(char *s);
 		mov		ebx,[esp+8]
 		int		0x40
 		pop		ebx
+		ret
+
+_api_putstr1:		; void api_putstr1(char *s, int len);
+		mov		edx,2
+		mov		ebx,[esp+4]
+		mov		ecx,[esp+8]
+		int		0x40
 		ret
 
 _api_end:			; void api_end(void);
@@ -187,6 +198,39 @@ _api_getkey:		; int api_getkey(int mode);
 		int		0x40
 		ret
 
-_debugmb:
-		xchg	bx,bx
+_api_alloctimer:	; int api_alloctimer(void);
+		mov		edx,16
+		int		0x40
+		ret
+
+_api_inittimer:		; void api_inittimer(int timer, int data);
+		push	ebx
+		mov		edx,17
+		mov		ebx,[esp+ 8]
+		mov		eax,[esp+12]
+		int		0x40
+		pop		ebx
+		ret
+
+_api_settimer:		; void api_settimer(int timer, int time);
+		push	ebx
+		mov		edx,18
+		mov		ebx,[esp+ 8]
+		mov		eax,[esp+12]
+		int		0x40
+		pop		ebx
+		ret
+
+_api_freetimer:		; void api_freetimer(int timer);
+		push	ebx
+		mov		edx,19
+		mov		ebx,[esp+8]
+		int		0x40
+		pop		ebx
+		ret
+
+_api_gettimer:		; int api_gettimer(int mode);
+		mov		edx,20
+		mov		eax,[esp+4]
+		int		0x40
 		ret

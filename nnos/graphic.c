@@ -203,3 +203,13 @@ void init_mouse_cursor(struct SHEET *sht)
 	}
 	return;
 }
+
+int eqColor(struct color c1, struct color c2)
+{
+	/* アルファ値が両方0なら両方透明なので一緒だよね */
+	if(c1.alpha == 0x00 && c2.alpha == 0x00) return 1;
+
+	if(c1.r == c2.r && c1.g == c2.g && c1.b == c2.b) return 1;
+
+	return 0;
+}

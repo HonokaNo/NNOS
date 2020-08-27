@@ -6,15 +6,19 @@ struct BUFFER buffer;
 
 #define KEYCMD_LED	0xed
 
+struct color keywin_off(struct SHEET *key_win, struct SHEET *sht_win, struct color cur_c, int cur_x);
+struct color keywin_on(struct SHEET *key_win, struct SHEET *sht_win, struct color cur_c);
+
+#define DEBUG 0
+
 void HariMain(void)
 {
 	struct color white = {0xff, 0xff, 0xff, 0xff};
 	struct color black = {0x00, 0x00, 0x00, 0xff};
 	struct color light_gray = {0xc6, 0xc6, 0xc6, 0xff};
-	struct color invisible_cursor = {0x00, 0x00, 0x00, 0x00};
 	struct color back24  = {0x99, 0xd9, 0xea, 0xff};
 	struct color back8 = {0x00, 0x84, 0x84, 0xff};
-	struct color back, cursor_c;
+	struct color back, cursor_c, c;
 
 	struct BOOTINFO *binfo = (struct BOOTINFO *)ADR_BOOTINFO;
 	struct localtime lt;
@@ -31,7 +35,9 @@ void HariMain(void)
 	struct TASK *task_a, *task_cons;
 	struct BUFFER keycmd;
 	struct CONSOLE *cons;
-	int key_to = 0, key_shift = 0, key_leds = (binfo->leds >> 4) & 7, keycmd_wait = -1;
+	int key_shift = 0, key_leds = (binfo->leds >> 4) & 7, keycmd_wait = -1;
+	int x, y, j, mmx = -1, mmy = -1;
+	struct SHEET *sht = 0, *key_win;
 
 	static char keytable0[0x80] = {
 		0,   0,   '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', 0,   0,
@@ -110,14 +116,14 @@ void HariMain(void)
 	sht_win = sheet_alloc(shtctl);
 	buf_win = (unsigned char *)memman_alloc_4k(memman, 160 * 68 * VMODE_WINDOW / 8);
 	sheet_setbuf(sht_win, buf_win, 160, 68);
-	make_window(sht_win, "window", 1);
+	make_window(sht_win, "window", 0);
 	putfontstr(VMODE_WINDOW, buf_win, WINDOW_SCLINE(sht_win), 24, 28, black, "Welcome to");
 	putfontstr(VMODE_WINDOW, buf_win, WINDOW_SCLINE(sht_win), 24, 44, black, "  No Name OS!");
 
 	sht_win2 = sheet_alloc(shtctl);
 	buf_win2 = (unsigned char *)memman_alloc_4k(memman, 160 * 68 * VMODE_WINDOW / 8);
 	sheet_setbuf(sht_win2, buf_win2, 160, 68);
-	make_window(sht_win2, "window2", 1);
+	make_window(sht_win2, "window2", 0);
 	putfontstr(VMODE_WINDOW, buf_win2, WINDOW_SCLINE(sht_win2), 24, 28, black, "Welcome to");
 	putfontstr(VMODE_WINDOW, buf_win2, WINDOW_SCLINE(sht_win2), 24, 44, black, "  No Name OS!");
 
@@ -172,10 +178,16 @@ void HariMain(void)
 	sheet_updown(sht_win3,  4);
 	sheet_updown(sht_mouse, 5);
 
+	key_win = sht_win3;
+	sht_cons->task = task_cons;
+	sht_cons->flags |= 0x20;
+
 	/* 画面初期化 */
-	putfontstr_sht(sht_back,  8,  8, white, back, "ABC 123");
-	putfontstr(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), 31, 31, black, "No Name OS.");
-	putfontstr(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), 30, 30, white, "No Name OS.");
+	if(DEBUG){
+		putfontstr_sht(sht_back,  8,  8, white, back, "ABC 123");
+		putfontstr(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), 31, 31, black, "No Name OS.");
+		putfontstr(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), 30, 30, white, "No Name OS.");
+	}
 
 	/* 時刻取得 */
 	lt = readrtc();
@@ -185,14 +197,17 @@ void HariMain(void)
 	sprintf(s, "%02X:%02X", lt.hour, lt.min);
 	putfontstr_sht(sht_back, binfo->scrnx - 45, binfo->scrny - 21, white, light_gray, s);
 
-	if(memtotal / (1024 * 1024) >= 1024){
-		sprintf(s, "memory %dMB / %dGB", memtotal / (1024 * 1024), memtotal / (1024 * 1024 * 1024));
-	}else sprintf(s, "memory %dMB", memtotal / (1024 * 1024));
-	putfontstr_sht(sht_back, 8, 48, white, back, s);
+	if(DEBUG){
+		if(memtotal / (1024 * 1024) >= 1024){
+			sprintf(s, "memory %dMB / %dGB", memtotal / (1024 * 1024), memtotal / (1024 * 1024 * 1024));
+		}else sprintf(s, "memory %dMB", memtotal / (1024 * 1024));
+		putfontstr_sht(sht_back, 8, 48, white, back, s);
 
-	putfontstr_sht(sht_back, 8, 80, white, back, "keydata: not found");
+		putfontstr_sht(sht_back, 8, 80, white, back, "keydata: not found");
 
-	sheet_refresh(sht_back, 0, 0, binfo->scrnx, 120);
+		sheet_refresh(sht_back, 0, 0, binfo->scrnx, 120);
+	}
+
 	sheet_refresh(sht_back, binfo->scrnx - 45, binfo->scrny - 21, binfo->scrnx - 5, binfo->scrny - 5);
 
 	buffer_put(&keycmd, TAG_KEYBOARD, KEYCMD_LED);
@@ -213,12 +228,20 @@ void HariMain(void)
 			dat = buffer_get(&buffer);
 			io_sti();
 
+			if(key_win->flags == 0){
+				key_win = shtctl->sheets[shtctl->top - 1];
+				cursor_c = keywin_on(key_win, sht_win3, cursor_c);
+			}
+
 			if(dat.tag == TAG_KEYBOARD){
-				boxfill(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), back, 8, 80, 240, 80 + 16);
-				sprintf(s, "keydata: %02X", dat.data);
-				putfontstr(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), 8, 80, white, s);
-				/* keydata: not foundよりも短い文字列で書き換えるのでrefresh範囲を広めにとってrefresh */
-				sheet_refresh(sht_back, 8, 80, 240, 96);
+				if(DEBUG){
+					boxfill(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), back, 8, 80, 240, 80 + 16);
+					sprintf(s, "keydata: %02X", dat.data);
+					putfontstr(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), 8, 80, white, s);
+					/* keydata: not foundよりも短い文字列で書き換えるのでrefresh範囲を広めにとってrefresh */
+					sheet_refresh(sht_back, 8, 80, 240, 96);
+				}
+
 				if(dat.data < 0x80){
 					if(key_shift == 0) s[0] = keytable0[dat.data];
 					else s[0] = keytable1[dat.data];
@@ -229,7 +252,7 @@ void HariMain(void)
 					}
 				}
 				if(s[0] != 0){
-					if(key_to == 0){
+					if(key_win == sht_win3){
 						if(cursor_x < 144){
 							s[1] = 0;
 							putfontstr_sht_ref(sht_win3, cursor_x, 28, black, white, s);
@@ -239,7 +262,7 @@ void HariMain(void)
 				}
 				/* Back space */
 				if(dat.data == 0x0e){
-					if(key_to == 0){
+					if(key_win == sht_win3){
 						if(cursor_x > 8){
 							putfontstr_sht_ref(sht_win3, cursor_x, 28, black, white, " ");
 							cursor_x -= 8;
@@ -247,27 +270,15 @@ void HariMain(void)
 					}else buffer_put(&task_cons->buf, TAG_KEYBOARD, 8);
 				}
 				if(dat.data == 0x1c){
-					if(key_to != 0) buffer_put(&task_cons->buf, TAG_KEYBOARD, 10);
+					if(key_win != sht_win3) buffer_put(&key_win->task->buf, TAG_KEYBOARD, 10);
 				}
 				/* Tab */
 				if(dat.data == 0x0f){
-					if(key_to == 0){
-						key_to = 1;
-						make_wtitle(sht_win3, "textbox",  0);
-						make_wtitle(sht_cons, "console",  1);
-						cursor_c = invisible_cursor;
-						boxfill(VMODE_WINDOW, sht_win3->buf, WINDOW_SCLINE(sht_win3), white, cursor_x, 28, cursor_x + 7, 43);
-						sheet_refresh(sht_win3, cursor_x, 28, cursor_x + 8, 44);
-						buffer_put(&task_cons->buf, 0, 2);
-					}else{
-						key_to = 0;
-						make_wtitle(sht_win3, "textbox",  1);
-						make_wtitle(sht_cons, "console",  0);
-						cursor_c = black;
-						buffer_put(&task_cons->buf, 0, 3);
-					}
-					sheet_refresh(sht_win3, 0, 0, sht_win3->bxsize, 21);
-					sheet_refresh(sht_cons, 0, 0, sht_cons->bxsize, 21);
+					cursor_c = keywin_off(key_win, sht_win3, cursor_c, cursor_x);
+					j = key_win->height - 1;
+					if(j == 0) j = shtctl->top - 1;
+					key_win = shtctl->sheets[j];
+					cursor_c = keywin_on(key_win, sht_win3, cursor_c);
 				}
 				/* Left shift on */
 				if(dat.data == 0x2a) key_shift |= 1;
@@ -295,6 +306,7 @@ void HariMain(void)
 					buffer_put(&keycmd, TAG_KEYBOARD, KEYCMD_LED);
 					buffer_put(&keycmd, TAG_KEYBOARD, key_leds);
 				}
+				/* Shift + F1 */
 				if(dat.data == 0x3b && key_shift != 0 && task_cons->tss.ss0 != 0){
 					cons = (struct CONSOLE *)*((int *)0x0fec);
 					cons_putstr0(cons, "\nBreak(key) :\n");
@@ -303,6 +315,11 @@ void HariMain(void)
 					task_cons->tss.eip = (int)asm_end_app;
 					io_sti();
 				}
+				/* F11 */
+				if(dat.data == 0x57 && shtctl->top > 2){
+					sheet_updown(shtctl->sheets[1], shtctl->top - 1);
+				}
+
 				if(dat.data == 0xfa) keycmd_wait = -1;
 				if(dat.data == 0xfe){
 					wait_KBC_sendready();
@@ -328,13 +345,13 @@ void HariMain(void)
 				}
 
 				if(decode == 1){
-					sprintf(s, "[lcr %4d %4d]", mdec.x, mdec.y);
-					if((mdec.btn & 0x01) != 0) s[1] = 'L';
-					if((mdec.btn & 0x02) != 0) s[3] = 'R';
-					if((mdec.btn & 0x04) != 0) s[2] = 'C';
-					putfontstr_sht_ref(sht_back, 8, 116, white, back, s);
-
-					if((mdec.btn & 0x01) != 0) sheet_slide(sht_win3, mx - 80, my - 8);
+					if(DEBUG){
+						sprintf(s, "[lcr %4d %4d]", mdec.x, mdec.y);
+						if((mdec.btn & 0x01) != 0) s[1] = 'L';
+						if((mdec.btn & 0x02) != 0) s[3] = 'R';
+						if((mdec.btn & 0x04) != 0) s[2] = 'C';
+						putfontstr_sht_ref(sht_back, 8, 116, white, back, s);
+					}
 
 					/* カーソル移動 */
 					mx += mdec.x;
@@ -343,9 +360,56 @@ void HariMain(void)
 					if(my < 0) my = 0;
 					if(mx > binfo->scrnx - 1) mx = binfo->scrnx - 1;
 					if(my > binfo->scrny - 1) my = binfo->scrny - 1;
-					sprintf(s, "(%3d, %3d)", mx, my);
-					putfontstr_sht_ref(sht_back, 8, 132, white, back, s);
+					if(DEBUG){
+						sprintf(s, "(%3d, %3d)", mx, my);
+						putfontstr_sht_ref(sht_back, 8, 132, white, back, s);
+					}
 					sheet_slide(sht_mouse, mx, my);
+
+					if((mdec.btn & 0x01) != 0){
+						if(mmx < 0){
+							for(j = shtctl->top - 1; j > 0; j--){
+								sht = shtctl->sheets[j];
+								x = mx - sht->vx0;
+								y = my - sht->vy0;
+								if(0 <= x && x < sht->bxsize && 0 <= y && y < sht->bysize){
+									c = getColorWin(sht, x, y);
+									if(c.alpha != 0x00){
+										sheet_updown(sht, shtctl->top - 1);
+										if(sht != key_win){
+											cursor_c = keywin_off(key_win, sht_win3, cursor_c, cursor_x);
+											key_win = sht;
+											cursor_c = keywin_on(key_win, sht_win, cursor_c);
+										}
+										if(3 <= x && x <= sht->bxsize - 3 && 3 <= y && y < 21){
+											/* ウィンドウを移動する */
+											mmx = mx;
+											mmy = my;
+										}
+										if(sht->bxsize - 21 <= x && x < sht->bxsize - 5 && 5 <= y && y < 19){
+											/* ×ボタンを押された */
+											/* アプリで作られたウィンドウのみ */
+											if((sht->flags & 0x10) != 0){
+												cons = (struct CONSOLE *)*((int *)0x0fec);
+												cons_putstr0(cons, "\nBreak(mouse) :\n");
+												io_cli();
+												task_cons->tss.eax = (int)&(task_cons->tss.esp0);
+												task_cons->tss.eip = (int)asm_end_app;
+												io_sti();
+											}
+										}
+										break;
+									}
+								}
+							}
+						}else{
+							x = mx - mmx;
+							y = my - mmy;
+							sheet_slide(sht, sht->vx0 + x, sht->vy0 + y);
+							mmx = mx;
+							mmy = my;
+						}
+					}else mmx = -1;
 				}
 			}
 			if(dat.tag == TAG_TIMER){
@@ -361,4 +425,36 @@ void HariMain(void)
 			}
 		}
 	}
+}
+
+struct color keywin_off(struct SHEET *key_win, struct SHEET *sht_win, struct color cur_c, int cur_x)
+{
+	struct color white = {0xff, 0xff, 0xff, 0xff};
+	struct color invisible_cursor = {0x00, 0x00, 0x00, 0x00};
+
+	change_wtitle(key_win, 0);
+	if(key_win == sht_win){
+		cur_c = invisible_cursor;
+		boxfill(VMODE_WINDOW, sht_win->buf, WINDOW_SCLINE(sht_win), white, cur_x, 28, cur_x + 7, 43);
+	}else{
+		if((key_win->flags & 0x20) != 0){
+			buffer_put(&key_win->task->buf, 0, 3);
+		}
+	}
+	return cur_c;
+}
+
+struct color keywin_on(struct SHEET *key_win, struct SHEET *sht_win, struct color cur_c)
+{
+	struct color black = {0x00, 0x00, 0x00, 0xff};
+
+	change_wtitle(key_win, 1);
+	if(key_win == sht_win){
+		cur_c = black;
+	}else{
+		if((key_win->flags & 0x20) != 0){
+			buffer_put(&key_win->task->buf, 0, 2);
+		}
+	}
+	return cur_c;
 }

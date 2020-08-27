@@ -37,6 +37,7 @@ struct SHEET *sheet_alloc(struct SHTCTL *ctl)
 			sht = &ctl->sheets0[i];
 			sht->flags = SHEET_USE;
 			sht->height = -1;
+			sht->task = 0;
 			return sht;
 		}
 	}
@@ -81,10 +82,7 @@ void sheet_refreshmap(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, in
 			vy = sht->vy0 + by;
 			for(bx = bx0; bx < bx1; bx++){
 				vx = sht->vx0 + bx;
-				c.b = buf[by * WINDOW_SCLINE(sht) + bx * VMODE_WINDOW / 8 + 0];
-				c.g = buf[by * WINDOW_SCLINE(sht) + bx * VMODE_WINDOW / 8 + 1];
-				c.r = buf[by * WINDOW_SCLINE(sht) + bx * VMODE_WINDOW / 8 + 2];
-				c.alpha = buf[by * WINDOW_SCLINE(sht) + bx * VMODE_WINDOW / 8 + 3];
+				c = getColorWin(sht, bx, by);
 				if(c.alpha != 0x00) map[vy * ctl->xsize + vx] = sid;
 			}
 		}
@@ -123,10 +121,7 @@ void sheet_refreshsub(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, in
 			vy = sht->vy0 + by;
 			for(bx = bx0; bx < bx1; bx++){
 				vx = sht->vx0 + bx;
-				c.b = buf[by * WINDOW_SCLINE(sht) + bx * VMODE_WINDOW / 8 + 0];
-				c.g = buf[by * WINDOW_SCLINE(sht) + bx * VMODE_WINDOW / 8 + 1];
-				c.r = buf[by * WINDOW_SCLINE(sht) + bx * VMODE_WINDOW / 8 + 2];
-				c.alpha = buf[by * WINDOW_SCLINE(sht) + bx * VMODE_WINDOW / 8 + 3];
+				c = getColorWin(sht, bx, by);
 				if(map[vy * ctl->xsize + vx] == sid) putPixel(binfo->vmode, vram, binfo->scline, vx, vy, c);
 			}
 		}

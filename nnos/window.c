@@ -140,3 +140,53 @@ void make_textbox(struct SHEET *sht, int x0, int y0, int sx, int sy, struct colo
 
 	return;
 }
+
+struct color getColorWin(struct SHEET *sht, int bx, int by)
+{
+	struct color c;
+
+	c.b = sht->buf[by * WINDOW_SCLINE(sht) + bx * VMODE_WINDOW / 8 + 0];
+	c.g = sht->buf[by * WINDOW_SCLINE(sht) + bx * VMODE_WINDOW / 8 + 1];
+	c.r = sht->buf[by * WINDOW_SCLINE(sht) + bx * VMODE_WINDOW / 8 + 2];
+	c.alpha = sht->buf[by * WINDOW_SCLINE(sht) + bx * VMODE_WINDOW / 8 + 3];
+
+	return c;
+}
+
+void change_wtitle(struct SHEET *sht, char act)
+{
+	struct color white = {0xff, 0xff, 0xff, 0xff};
+	struct color light_gray = {0xc6, 0xc6, 0xc6, 0xff};
+	struct color  dark_gray = {0x84, 0x84, 0x84, 0xff};
+	struct color  dark_blue = {0x00, 0x00, 0x84, 0xff};
+
+	int x, y, xsize = sht->bxsize;
+	struct color c, tc_new, tbc_new, tc_old, tbc_old;
+
+	if(act != 0){
+		tc_new = white;
+		tbc_new = dark_blue;
+		tc_old = light_gray;
+		tbc_old = dark_gray;
+	}else{
+		tc_new = light_gray;
+		tbc_new = dark_gray;
+		tc_old = white;
+		tbc_old = dark_blue;
+	}
+
+	for(y = 3; y <= 20; y++){
+		for(x = 3; x <= xsize; x++){
+			c = getColorWin(sht, x, y);
+			if(eqColor(c, tbc_old) && y <= 5 && x <= xsize - 4) c = tbc_new;
+			if(eqColor(c, tbc_old) && y >= 18 && x <= xsize - 4) c = tbc_new;
+			if(eqColor(c, tbc_old) && y > 5 && y < 18 && x <= xsize - 38) c = tbc_new;
+			if(eqColor(c, tbc_old) && y > 5 && y < 18 && x >= xsize - 22 && x <= xsize - 21) c = tbc_new;
+			if(eqColor(c, tbc_old) && y > 5 && y < 18 && x >= xsize - 5 && x <= xsize - 3) c = tbc_new;
+			if(eqColor(c, tc_old) && x <= xsize - 45) c = tc_new;
+			putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), x, y, c);
+		}
+	}
+	sheet_refresh(sht, 3, 3, xsize, 21);
+	return;
+}

@@ -28,8 +28,6 @@ void asm_inthandler2c(void);
 
 void asm_hrb_api(void);
 
-void debug(void);
-
 #define ADR_BOOTINFO	0x00000ff0
 #define ADR_DISKIMG		0x00100000
 
@@ -60,6 +58,7 @@ void putPixel(char vmode, char *vram, int scline, int x, int y, struct color c);
 void boxfill(char vmode, char *vram, int scline, struct color c, int x0, int y0, int x1, int y1);
 void putfont(char vmode, char *vram, int scline, int x, int y, struct color c, char *font);
 void putfontstr(char vmode, char *vram, int scline, int x, int y, struct color c, unsigned char *s);
+int eqColor(struct color c1, struct color c2);
 
 void setPalette(void);
 
@@ -181,6 +180,7 @@ struct SHEET
 	unsigned char *buf;
 	int bxsize, bysize, vx0, vy0, height, flags;
 	struct SHTCTL *ctl;
+	struct TASK *task;
 };
 
 struct SHTCTL
@@ -212,7 +212,8 @@ void send_string(char *string);
 struct TIMER
 {
 	struct TIMER *next;
-	unsigned int timeout, flags;
+	unsigned int timeout;
+	char flags, flags2;
 	struct BUFFER *buf;
 	int data;
 };
@@ -231,6 +232,8 @@ struct TIMER *timer_alloc(void);
 void timer_free(struct TIMER *timer);
 void timer_init(struct TIMER *timer, struct BUFFER *buf, unsigned char data);
 void timer_settime(struct TIMER *timer, unsigned int timeout);
+int timer_cancel(struct TIMER *timer);
+void timer_cancelall(struct BUFFER *buf);
 
 #define MAX_TASKS		500
 #define TASK_GDT0		  3
@@ -315,6 +318,8 @@ void make_window(struct SHEET *sht, char *title, char act);
 void putfontstr_sht(struct SHEET *sht, int x, int y, struct color c, struct color bc, char *s);
 void putfontstr_sht_ref(struct SHEET *sht, int x, int y, struct color c, struct color bc, char *s);
 void make_textbox(struct SHEET *sht, int x0, int y0, int sx, int sy, struct color c);
+struct color getColorWin(struct SHEET *sht, int bx, int by);
+void change_wtitle(struct SHEET *sht, char act);
 
 void wait_KBC_sendready(void);
 void init_keyboard(void);

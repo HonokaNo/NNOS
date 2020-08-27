@@ -256,9 +256,10 @@ int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline)
 	struct FILEINFO *finfo;
 	struct SEGMENT_DESCRIPTOR *gdt = (struct SEGMENT_DESCRIPTOR *)ADR_GDT;
 	struct TASK *task = task_now();
+	struct SHTCTL *shtctl;
+	struct SHEET *sht;
 	char name[18], *p, *q;
 	int i, segsiz, datsiz, esp, dathrb;
-	char s[30];
 
 	for(i = 0; i < 13; i++){
 		if(cmdline[i] <= ' ') break;
@@ -280,20 +281,27 @@ int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline)
 		p = (char *)memman_alloc_4k(memman, finfo->size);
 		file_loadfile(finfo->clustno, finfo->size, p, fat, (char *)(ADR_DISKIMG + 0x3e00));
 
-		sprintf(s, "%08X\n", p);
-		cons_putstr0(cons, s);
-
 		if(finfo->size >= 36 && !strncmp(p + 4, "Hari", 4) && *p == 0x00){
 			segsiz = *((int *)(p + 0x0000));
 			esp    = *((int *)(p + 0x000c));
 			datsiz = *((int *)(p + 0x0010));
 			dathrb = *((int *)(p + 0x0014));
+
 			q = (char *)memman_alloc_4k(memman, segsiz);
 			*((int *)0xfe8) = (int)q;
 			set_segmdesc(gdt + 1003, finfo->size - 1, (int)p, AR_CODE32_ER + 0x60);
 			set_segmdesc(gdt + 1004, segsiz - 1,      (int)q, AR_DATA32_RW + 0x60);
+
 			for(i = 0; i < datsiz; i++) q[esp + i] = p[dathrb + i];
+
 			start_app(0x1b, 1003 * 8, esp, 1004 * 8, &(task->tss.esp0));
+
+			shtctl = (struct SHTCTL *)*((int *)0x0fe4);
+			for(i = 0; i < MAX_SHEETS; i++){
+				sht = &(shtctl->sheets0[i]);
+				if((sht->flags & 0x11) == 0x11 && sht->task == task) sheet_free(sht);
+			}
+			timer_cancelall(&task->buf);
 			memman_free_4k(memman, (int)q, segsiz);
 		}else cons_putstr0(cons, ".hrb file format error.\n");
 		memman_free_4k(memman, (int)p, finfo->size);
@@ -316,9 +324,12 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 	struct color invisible_cursor = {0x00, 0x00, 0x00, 0x00};
 	struct color c;
 	struct BUFDATA dat;
+	struct BUFFER timer_buf;
 	int *reg = &eax + 1;
 		/* reg[0] : EDI reg[1] : ESI reg[2] : EBP reg[3] : ESP */
 		/* reg[4] ; EBX reg[5] : EDX reg[6] : ECX reg[7] : EAX */
+
+	buffer_init(&timer_buf, 32, task);
 
 	if(edx == 1) cons_putchar(cons, eax & 0xff, 1);
 	if(edx == 2) cons_putstr0(cons, (char *)ebx + ds_base);
@@ -326,10 +337,12 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 	if(edx == 4) return &(task->tss.esp0);
 	if(edx == 5){
 		sht = sheet_alloc(shtctl);
+		sht->task = task;
+		sht->flags |= 0x10;
 		sheet_setbuf(sht, (char *)ebx + ds_base, esi, edi);
 		make_window(sht, (char *)(ecx + ds_base), 0);
 		sheet_slide(sht, 100, 50);
-		sheet_updown(sht, 3);
+		sheet_updown(sht, shtctl->top - 1);
 		reg[7] = (int)sht;
 	}
 	if(edx == 6){
@@ -384,18 +397,46 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 					reg[7] = -1;
 					return 0;
 				}
-			}
+			}else{
+				dat = buffer_get(&task->buf);
 
-			dat = buffer_get(&task->buf);
-			io_sti();
-			if(dat.tag == 0){
-				if(dat.data == 0 || dat.data == 1){
-					timer_init(cons->timer, &task->buf, 1);
-					timer_settime(cons->timer, 50);
+				io_sti();
+				if(dat.tag == 0){
+					if(dat.data == 2) cons->cur_c = white;
+					if(dat.data == 3) cons->cur_c = invisible_cursor;
+				}else if(dat.tag == TAG_KEYBOARD){
+					reg[7] = dat.data;
+					return 0;
+				}else if(dat.tag == TAG_TIMER){
+					if(dat.data == 0 || dat.data == 1){
+						timer_init(cons->timer, &task->buf, 1);
+						timer_settime(cons->timer, 50);
+					}
 				}
-				if(dat.data == 2) cons->cur_c = white;
-				if(dat.data == 3) cons->cur_c = invisible_cursor;
-			}else if(dat.tag == TAG_KEYBOARD){
+			}
+		}
+	}
+	if(edx == 16){
+		reg[7] = (int)timer_alloc();
+		((struct TIMER *)reg[7])->flags2 = 1;
+	}
+	if(edx == 17) timer_init((struct TIMER *)ebx, &timer_buf, eax);
+	if(edx == 18) timer_settime((struct TIMER *)ebx, eax);
+	if(eax == 19) timer_free((struct TIMER *)ebx);
+	if(edx == 20){
+		for(;;){
+			io_cli();
+			if(buffer_status(&timer_buf) == 0){
+				if(eax != 0) task_sleep(task);
+				else{
+					io_sti();
+					reg[7] = -1;
+					return 0;
+				}
+			}else{
+				dat = buffer_get(&timer_buf);
+
+				io_sti();
 				reg[7] = dat.data;
 				return 0;
 			}
