@@ -11,7 +11,7 @@ nnos.img : nnos/ipl.bin nnos/nnos.sys Makefile \
 		winhelo/winhelo.hrb winhelo2/winhelo2.hrb winhelo3/winhelo3.hrb \
 		star1/star1.hrb stars/stars.hrb stars2/stars2.hrb \
 		lines/lines.hrb walk/walk.hrb hello5/hello5.hrb \
-		noodle/noodle.hrb
+		noodle/noodle.hrb beepdown/beepdown.hrb beepup/beepup.hrb
 	$(EDIMG)   imgin:$(TOOLPATH)fdimg0at.tek \
 		wbinimg src:nnos/ipl.bin len:512 from:0 to:0 \
 		copy from:nnos/nnos.sys to:@: \
@@ -27,6 +27,8 @@ nnos.img : nnos/ipl.bin nnos/nnos.sys Makefile \
 		copy from:walk/walk.hrb to:@: \
 		copy from:hello5/hello5.hrb to:@: \
 		copy from:noodle/noodle.hrb to:@: \
+		copy from:beepdown/beepdown.hrb to:@: \
+		copy from:beepup/beepup.hrb to:@: \
 		imgout:nnos.img
 
 # コマンド
@@ -49,6 +51,8 @@ full :
 	$(MAKE) -C walk
 	$(MAKE) -C hello5
 	$(MAKE) -C noodle
+	$(MAKE) -C beepdown
+	$(MAKE) -C beepup
 	$(MAKE) nnos.img
 
 run_full :
@@ -79,6 +83,8 @@ clean_full :
 	$(MAKE) -C walk		clean
 	$(MAKE) -C hello5	clean
 	$(MAKE) -C noodle	clean
+	$(MAKE) -C beepdown	clean
+	$(MAKE) -C beepup	clean
 
 src_only_full :
 	$(MAKE) -C nnos		src_only
@@ -92,6 +98,8 @@ src_only_full :
 	$(MAKE) -C walk		src_only
 	$(MAKE) -C hello5	src_only
 	$(MAKE) -C noodle	src_only
+	$(MAKE) -C beepdown	src_only
+	$(MAKE) -C beepup	src_only
 	-$(DEL) nnos.img
 
 refresh :

@@ -120,7 +120,8 @@ void init_pic(void);
 #define TAG_KEYBOARD	1		/* キーボードデータ */
 #define TAG_RTC			2		/* RTC時刻更新 */
 #define TAG_MOUSE		3		/* マウスデータ */
-#define TAG_TIMER		4
+#define TAG_TIMER		4		/* タイマ割り込み */
+#define TAG_CONSOLE		5		/* コンソール終了データ */
 
 struct BUFDATA
 {
@@ -254,6 +255,8 @@ struct TASK
 	int level, priority;
 	struct TSS32 tss;
 	struct BUFFER buf;
+	struct CONSOLE *cons;
+	int ds_base, cons_stack;
 };
 
 struct TASKLEVEL
@@ -298,6 +301,7 @@ void cmd_cls(struct CONSOLE *cons);
 void cmd_neofetch(struct CONSOLE *cons);
 void cmd_dir(struct CONSOLE *cons);
 void cmd_type(struct CONSOLE *cons, int *fat, char *cmdline);
+void cmd_exit(struct CONSOLE *cons, int *fat);
 int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline);
 int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax);
 

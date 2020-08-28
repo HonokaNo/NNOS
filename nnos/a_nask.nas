@@ -22,6 +22,7 @@
 		GLOBAL	_api_settimer
 		GLOBAL	_api_freetimer
 		GLOBAL	_api_gettimer
+		GLOBAL	_api_beep
 
 [SECTION .text]
 
@@ -231,6 +232,12 @@ _api_freetimer:		; void api_freetimer(int timer);
 
 _api_gettimer:		; int api_gettimer(int mode);
 		mov		edx,20
+		mov		eax,[esp+4]
+		int		0x40
+		ret
+
+_api_beep:			; void api_beep(int tone);
+		mov		edx,21
 		mov		eax,[esp+4]
 		int		0x40
 		ret

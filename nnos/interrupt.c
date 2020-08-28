@@ -27,8 +27,8 @@ void init_pic(void)
 
 int *inthandler03(int *esp)
 {
-	struct CONSOLE *cons = (struct CONSOLE *)*((int *)0x0fec);
 	struct TASK *task = task_now();
+	struct CONSOLE *cons = task->cons;
 	char s[30];
 	cons_putstr0(cons, "\nINT 03 :\n Break Exception.\n");
 	sprintf(s, "EIP = %08X CS = %05d \n", esp[11], esp[12] / 8);
@@ -38,8 +38,8 @@ int *inthandler03(int *esp)
 
 int *inthandler0c(int *esp)
 {
-	struct CONSOLE *cons = (struct CONSOLE *)*((int *)0x0fec);
 	struct TASK *task = task_now();
+	struct CONSOLE *cons = task->cons;
 	char s[30];
 	cons_putstr0(cons, "\nINT 0c :\n Stack Exception.\n");
 	sprintf(s, "EIP = %08X\n", esp[11]);
@@ -49,8 +49,8 @@ int *inthandler0c(int *esp)
 
 int *inthandler0d(int *esp)
 {
-	struct CONSOLE *cons = (struct CONSOLE *)*((int *)0x0fec);
 	struct TASK *task = task_now();
+	struct CONSOLE *cons = task->cons;
 	char s[30];
 	cons_putstr0(cons, "\nINT 0d :\n General Protected Exception.\n");
 	sprintf(s, "EIP = %08X\n", esp[11]);

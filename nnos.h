@@ -27,5 +27,6 @@ void api_inittimer(int timer, int data);
 void api_settimer(int timer, int time);
 void api_freetimer(int timer);
 int api_gettimer(int mode);
+void api_beep(int tone);
 
 #endif

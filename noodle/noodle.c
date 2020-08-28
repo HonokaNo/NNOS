@@ -12,15 +12,16 @@ void HariMain(void)
 	api_initmalloc();
 	buf = api_malloc(150 * 50 * 4);
 	win = api_openwin(buf, 150, 50, "noodle");
+
+	sprintf(s, "%5d:%02d:%02d", hour, min, sec);
+	api_boxfilwin(win, 28, 27, 115, 41, &white);
+	api_putstrwin(win, 28, 27, &black, s);
+
 	timer = api_alloctimer();
 	api_inittimer(timer, 128);
+	api_settimer(timer, 100);
 
 	for(;;){
-		sprintf(s, "%5d:%02d:%02d", hour, min, sec);
-		api_boxfilwin(win, 28, 27, 115, 41, &white);
-		api_putstrwin(win, 28, 27, &black, s);
-		api_settimer(timer, 100);
-
 		if(api_getkey(0) != -1) break;
 
 		if(api_gettimer(1) == 128){
@@ -33,6 +34,11 @@ void HariMain(void)
 					hour++;
 				}
 			}
+
+			sprintf(s, "%5d:%02d:%02d", hour, min, sec);
+			api_boxfilwin(win, 28, 27, 115, 41, &white);
+			api_putstrwin(win, 28, 27, &black, s);
+			api_settimer(timer, 100);
 		}
 	}
 

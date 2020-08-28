@@ -158,6 +158,10 @@ API list:
 
 		eax:timer data mode=0かつデータがなければ-1
 
+	21.beep sound
+		edx:21
+		eax:mHz
+
 (warn1):
 	(warn1)がついている関数では描画ごとにrefreshされます。
 	自動でrefreshを行わない場合、ebx(sheet num)に1を足して指定してください。

@@ -17,9 +17,7 @@ void console_task(struct SHEET *sht, unsigned int memtotal)
 	cons.cur_x =  8;
 	cons.cur_y = 28;
 	cons.cur_c = invisible_cursor;
-	*((int *)0xfec) = (int)&cons;
-
-	buffer_init(&task->buf, 128, task);
+	task->cons = &cons;
 
 	cons.timer = timer_alloc();
 	timer_init(cons.timer, &task->buf, 1);
@@ -156,6 +154,7 @@ void cons_runcmd(char *cmdline, struct CONSOLE *cons, int *fat, unsigned memtota
 	else if(!strcmp(cmdline, "neofetch")) cmd_neofetch(cons);
 	else if(!strcmp(cmdline, "dir") || !strcmp(cmdline, "ls")) cmd_dir(cons);
 	else if(!strncmp(cmdline, "type ", 5) || !strcmp(cmdline, "cat")) cmd_type(cons, fat, cmdline);
+	else if(!strcmp(cmdline, "exit")) cmd_exit(cons, fat);
 	else if(cmdline[0] != 0){
 		if(cmd_app(cons, fat, cmdline) == 0){
 			cons_putstr0(cons, "Bad command.\n\n");
@@ -250,6 +249,21 @@ void cmd_type(struct CONSOLE *cons, int *fat, char *cmdline)
 	return;
 }
 
+void cmd_exit(struct CONSOLE *cons, int *fat)
+{
+	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
+	struct TASK *task = task_now();
+	struct SHTCTL *shtctl = (struct SHTCTL *)*((int *)0x0fe4);
+	struct BUFFER *buf = (struct BUFFER *)*((int *)0x0fec);
+
+	timer_cancel(cons->timer);
+	memman_free_4k(memman, (int)fat, 4 * 2880);
+	io_cli();
+	buffer_put(buf, TAG_CONSOLE, cons->sht - shtctl->sheets0);
+	io_sti();
+	for(;;) task_sleep(task);
+}
+
 int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline)
 {
 	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
@@ -288,13 +302,13 @@ int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline)
 			dathrb = *((int *)(p + 0x0014));
 
 			q = (char *)memman_alloc_4k(memman, segsiz);
-			*((int *)0xfe8) = (int)q;
-			set_segmdesc(gdt + 1003, finfo->size - 1, (int)p, AR_CODE32_ER + 0x60);
-			set_segmdesc(gdt + 1004, segsiz - 1,      (int)q, AR_DATA32_RW + 0x60);
+			task->ds_base = (int)q;
+			set_segmdesc(gdt + task->sel / 8 + 1000, finfo->size - 1, (int)p, AR_CODE32_ER + 0x60);
+			set_segmdesc(gdt + task->sel / 8 + 2000, segsiz - 1,      (int)q, AR_DATA32_RW + 0x60);
 
 			for(i = 0; i < datsiz; i++) q[esp + i] = p[dathrb + i];
 
-			start_app(0x1b, 1003 * 8, esp, 1004 * 8, &(task->tss.esp0));
+			start_app(0x1b, task->sel + 1000 * 8, esp, task->sel + 2000 * 8, &(task->tss.esp0));
 
 			shtctl = (struct SHTCTL *)*((int *)0x0fe4);
 			for(i = 0; i < MAX_SHEETS; i++){
@@ -315,9 +329,8 @@ void hrb_api_linewin(struct SHEET *sht, int x0, int y0, int x1, int y1, struct c
 
 int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax)
 {
-	int ds_base = *((int *)0xfe8);
 	struct TASK *task = task_now();
-	struct CONSOLE *cons = (struct CONSOLE *)*((int *)0x0fec);
+	struct CONSOLE *cons = task->cons;
 	struct SHTCTL *shtctl = (struct SHTCTL *)*((int *)0x0fe4);
 	struct SHEET *sht;
 	struct color white = {0xff, 0xff, 0xff, 0xff};
@@ -325,6 +338,7 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 	struct color c;
 	struct BUFDATA dat;
 	struct BUFFER timer_buf;
+	int ds_base = task->ds_base, i;
 	int *reg = &eax + 1;
 		/* reg[0] : EDI reg[1] : ESI reg[2] : EBP reg[3] : ESP */
 		/* reg[4] ; EBX reg[5] : EDX reg[6] : ECX reg[7] : EAX */
@@ -341,8 +355,8 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 		sht->flags |= 0x10;
 		sheet_setbuf(sht, (char *)ebx + ds_base, esi, edi);
 		make_window(sht, (char *)(ecx + ds_base), 0);
-		sheet_slide(sht, 100, 50);
-		sheet_updown(sht, shtctl->top - 1);
+		sheet_slide(sht, (shtctl->xsize - esi) / 2, (shtctl->ysize - edi) / 2);
+		sheet_updown(sht, shtctl->top);
 		reg[7] = (int)sht;
 	}
 	if(edx == 6){
@@ -440,6 +454,19 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 				reg[7] = dat.data;
 				return 0;
 			}
+		}
+	}
+	if(edx == 21){
+		if(eax == 0){
+			i = io_in8(0x61);
+			io_out8(0x61, i & 0x0d);
+		}else{
+			i = 1193180000 / eax;
+			io_out8(0x43, 0xb6);
+			io_out8(0x42, i & 0xff);
+			io_out8(0x42, i >> 8);
+			i = io_in8(0x61);
+			io_out8(0x61, (i | 0x03) & 0x0f);
 		}
 	}
 
