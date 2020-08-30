@@ -6,12 +6,12 @@ void HariMain(void)
 
 	timer = api_alloctimer();
 	api_inittimer(timer, 128);
-	api_settimer(timer, 1);
+	api_settime(timer, 1);
 
 	for(i = 20000; i <= 20000000; i += i / 100){
 		if(api_gettimer(1) == 128){
 			api_beep(i);
-			api_settimer(timer, 1);
+			api_settime(timer, 1);
 		}
 	}
 

@@ -159,10 +159,59 @@ void putfont(char vmode, char *vram, int scline, int x, int y, struct color c, c
 void putfontstr(char vmode, char *vram, int scline, int x, int y, struct color c, unsigned char *s)
 {
 	extern char hankaku[4096];
+	struct TASK *task = task_now();
+	char *nihongo = (char *)*((int *)0x0fe8), *font;
+	int k, t;
 
-	for(; *s != 0x00; s++){
-		putfont(vmode, vram, scline, x, y, c, hankaku + *s * 16);
+	if(task->langmode == 0){
+		for(; *s != 0x00; s++){
+			putfont(vmode, vram, scline, x, y, c, hankaku + *s * 16);
+			x += 8;
+		}
+	}
+	if(task->langmode == 1){
+		if(task->langbyte1 == 0){
+			if((0x81 <= *s && *s <= 0x9f) || (0xe0 <= *s && *s <= 0xfc)){
+				task->langbyte1 = *s;
+			}else{
+				putfont(vmode, vram, scline, x, y, c, nihongo + *s * 16);
+			}
+		}else{
+			if(0x81 <= task->langbyte1 && task->langbyte1 <= 0x9f){
+				k = (task->langbyte1 - 0x81) * 2;
+			}else{
+				k = (task->langbyte1 - 0xe0) * 2 + 62;
+			}
+			if(0x40 <= *s && *s <= 0x7e){
+				t = *s - 0x40;
+			}else if(0x80 <= *s && *s <= 0x9e){
+				t = *s - 0x80 + 63;
+			}else{
+				t = *s - 0x9f;
+				k++;
+			}
+			task->langbyte1 = 0;
+			font = nihongo + 256 * 16 + (k * 94 + t) * 32;
+			putfont(vmode, vram, scline, x - 8, y, c, font     );
+			putfont(vmode, vram, scline, x    , y, c, font + 16);
+		}
 		x += 8;
+	}
+	if(task->langmode == 2){
+		for(; *s != 0x00; s++){
+			if(task->langbyte1 == 0){
+				if(0x81 <= *s && *s <= 0xfe) task->langbyte1 = *s;
+				else putfont(vmode, vram, scline, x, y, c, nihongo + *s * 16);
+			}else{
+				k = task->langbyte1 - 0xa1;
+				t = *s - 0xa1;
+				task->langbyte1 = 0;
+				font = nihongo + 256 * 16 + (k * 94 + t) * 32;
+				putfont(vmode, vram, scline, x - 8, y, c, font     );
+				putfont(vmode, vram, scline, x    , y, c, font + 16);
+			}
+			x += 8;
+		}
 	}
 	return;
 }

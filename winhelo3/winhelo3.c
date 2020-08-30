@@ -12,5 +12,10 @@ void HariMain(void)
 	win = api_openwin(buf, 150, 50, "hello3");
 	api_boxfilwin(win,  8, 36, 141, 43, &yellow);
 	api_putstrwin(win, 28, 28, &black, "hello, world");
+
+	for(;;){
+		if(api_getkey(1) == 0x0a) break;
+	}
+
 	api_end();
 }

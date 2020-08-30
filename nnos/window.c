@@ -114,10 +114,16 @@ void putfontstr_sht(struct SHEET *sht, int x, int y, struct color c, struct colo
 
 void putfontstr_sht_ref(struct SHEET *sht, int x, int y, struct color c, struct color bc, char *s)
 {
+	struct TASK *task = task_now();
 	int l = strlen(s);
 
-	putfontstr_sht(sht, x, y, c, bc, s);
-	sheet_refresh(sht, x, y, x + 8 * l, y + 16);
+	if(task->langmode != 0 && task->langbyte1 != 0){
+		putfontstr_sht(sht, x, y, c, bc, s);
+		sheet_refresh(sht, x - 8, y, x + 8 * l, y + 16);
+	}else{
+		putfontstr_sht(sht, x, y, c, bc, s);
+		sheet_refresh(sht, x, y, x + 8 * l, y + 16);
+	}
 }
 
 void make_textbox(struct SHEET *sht, int x0, int y0, int sx, int sy, struct color c)

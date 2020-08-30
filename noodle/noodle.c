@@ -7,7 +7,7 @@ void HariMain(void)
 	struct color black = {0x00, 0x00, 0x00, 0xff};
 
 	char *buf, s[12];
-	int win, timer, sec = 0, min = 0, hour = 0;
+	int win, timer, sec = 0, min = 0, hour = 0, j;
 
 	api_initmalloc();
 	buf = api_malloc(150 * 50 * 4);
@@ -19,12 +19,14 @@ void HariMain(void)
 
 	timer = api_alloctimer();
 	api_inittimer(timer, 128);
-	api_settimer(timer, 100);
+	api_settime(timer, 100);
 
 	for(;;){
 		if(api_getkey(0) != -1) break;
 
-		if(api_gettimer(1) == 128){
+		j = api_gettimer(1);
+
+		if(j == 128){
 			sec++;
 			if(sec == 60){
 				sec = 0;
@@ -38,7 +40,7 @@ void HariMain(void)
 			sprintf(s, "%5d:%02d:%02d", hour, min, sec);
 			api_boxfilwin(win, 28, 27, 115, 41, &white);
 			api_putstrwin(win, 28, 27, &black, s);
-			api_settimer(timer, 100);
+			api_settime(timer, 100);
 		}
 	}
 

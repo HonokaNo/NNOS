@@ -11,7 +11,8 @@ nnos.img : nnos/ipl.bin nnos/nnos.sys Makefile \
 		winhelo/winhelo.hrb winhelo2/winhelo2.hrb winhelo3/winhelo3.hrb \
 		star1/star1.hrb stars/stars.hrb stars2/stars2.hrb \
 		lines/lines.hrb walk/walk.hrb hello5/hello5.hrb \
-		noodle/noodle.hrb beepdown/beepdown.hrb beepup/beepup.hrb
+		noodle/noodle.hrb beepdown/beepdown.hrb beepup/beepup.hrb \
+		sosu/sosu.hrb type/type.hrb iroha/iroha.hrb chklang/chklang.hrb
 	$(EDIMG)   imgin:$(TOOLPATH)fdimg0at.tek \
 		wbinimg src:nnos/ipl.bin len:512 from:0 to:0 \
 		copy from:nnos/nnos.sys to:@: \
@@ -29,6 +30,12 @@ nnos.img : nnos/ipl.bin nnos/nnos.sys Makefile \
 		copy from:noodle/noodle.hrb to:@: \
 		copy from:beepdown/beepdown.hrb to:@: \
 		copy from:beepup/beepup.hrb to:@: \
+		copy from:sosu/sosu.hrb to:@: \
+		copy from:type/type.hrb to:@: \
+		copy from:iroha/iroha.hrb to:@: \
+		copy from:chklang/chklang.hrb to:@: \
+		copy from:nihongo/nihongo.fnt to:@: \
+		copy from:euc.txt to:@: \
 		imgout:nnos.img
 
 # コマンド
@@ -40,7 +47,7 @@ run :
 
 full :
 	$(MAKE) -C nnos
-	$(MAKE) -C nnos a_nask.obj
+	$(MAKE) -C library
 	$(MAKE) -C winhelo
 	$(MAKE) -C winhelo2
 	$(MAKE) -C winhelo3
@@ -53,6 +60,10 @@ full :
 	$(MAKE) -C noodle
 	$(MAKE) -C beepdown
 	$(MAKE) -C beepup
+	$(MAKE) -C sosu
+	$(MAKE) -C type
+	$(MAKE) -C iroha
+	$(MAKE) -C chklang
 	$(MAKE) nnos.img
 
 run_full :
@@ -73,6 +84,7 @@ src_only :
 
 clean_full :
 	$(MAKE) -C nnos		clean
+	$(MAKE) -C library	clean
 	$(MAKE) -C winhelo	clean
 	$(MAKE) -C winhelo2	clean
 	$(MAKE) -C winhelo3	clean
@@ -85,9 +97,14 @@ clean_full :
 	$(MAKE) -C noodle	clean
 	$(MAKE) -C beepdown	clean
 	$(MAKE) -C beepup	clean
+	$(MAKE) -C sosu		clean
+	$(MAKE) -C type		clean
+	$(MAKE) -C iroha	clean
+	$(MAKE) -C chklang	clean
 
 src_only_full :
 	$(MAKE) -C nnos		src_only
+	$(MAKE) -C library	src_only
 	$(MAKE) -C winhelo	src_only
 	$(MAKE) -C winhelo2	src_only
 	$(MAKE) -C winhelo3	src_only
@@ -100,6 +117,10 @@ src_only_full :
 	$(MAKE) -C noodle	src_only
 	$(MAKE) -C beepdown	src_only
 	$(MAKE) -C beepup	src_only
+	$(MAKE) -C sosu		src_only
+	$(MAKE) -C type		src_only
+	$(MAKE) -C iroha	src_only
+	$(MAKE) -C chklang	src_only
 	-$(DEL) nnos.img
 
 refresh :

@@ -11,13 +11,17 @@ void HariMain(void)
 
 	api_initmalloc();
 	buf = api_malloc(150 * 100 * 4);
-	win = api_openwin(buf, 150, 100, "star1");
+	win = api_openwin(buf, 150, 100, "stars");
 	api_boxfilwin(win,  6, 26, 143, 93, &black);
 
 	for(i = 0; i < 50; i++){
 		y = (rand() %  67) + 26;
 		x = (rand() % 137) +  6;
 		api_point(win, x, y, &yellow);
+	}
+
+	for(;;){
+		if(api_getkey(1) == 0x0a) break;
 	}
 
 	api_end();

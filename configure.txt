@@ -16,6 +16,8 @@ endif
 TOOLPATH = C:/z_tools/
 # 変更の必要なし
 INCPATH  = $(TOOLPATH)haribote/
+# 変更の必要なし
+APILIBPATH   = ../library/
 
 # それぞれのツールの位置
 # z_toolsにツールが入っているので基本変更する必要はない

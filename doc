@@ -162,6 +162,40 @@ API list:
 		edx:21
 		eax:mHz
 
+	22.open file
+		edx:22
+		ebx:file name
+
+		return:
+
+		eax:file handle num
+
+	23.close file
+		edx:23
+		eax:file handle num
+
+	24.file seek
+		edx:24
+		ecx:mode 0=set pos 1=slide pos 2=slide pos at end
+		ebx:pos num
+
+	25.get file size
+		edx:25
+		ecx:mode 0=get fsize 1=get pos 2=end - pos
+
+		return:
+
+		eax:fsize/pos/end - pos data
+
+	26.read file
+		edx:26
+		ebx:buffer
+		ecx:read max size
+
+		return:
+
+		eax:readed data size
+
 (warn1):
 	(warn1)がついている関数では描画ごとにrefreshされます。
 	自動でrefreshを行わない場合、ebx(sheet num)に1を足して指定してください。

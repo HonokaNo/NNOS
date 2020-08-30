@@ -38,7 +38,11 @@ void HariMain(void)
 	struct BUFFER keycmd;
 	int key_shift = 0, key_leds = (binfo->leds >> 4) & 7, keycmd_wait = -1;
 	int x, y, j, mmx = -1, mmy = -1;
-	struct SHEET *sht = 0, *key_win;
+	struct SHEET *sht = 0, *key_win, *sht2;
+	struct FILEINFO *finfo;
+	int *fat, i;
+	unsigned char *nihongo;
+	extern char hankaku[4096];
 
 	static char keytable0[0x80] = {
 		0,   0,   '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', 0x08, 0,
@@ -110,6 +114,7 @@ void HariMain(void)
 	task_a = task_init(memman);
 	buffer.task = task_a;
 	task_run(task_a, 1, 2);
+	task_a->langmode = 0;
 
 	/* マウス */
 	sht_mouse = sheet_alloc(shtctl);
@@ -172,6 +177,28 @@ void HariMain(void)
 
 	buffer_put(&keycmd, TAG_KEYBOARD, KEYCMD_LED);
 	buffer_put(&keycmd, TAG_KEYBOARD, key_leds);
+
+	/* nihongo.fntの読み込み */
+	fat = (int *)memman_alloc_4k(memman, 4 * 2880);
+	file_readfat(fat, (unsigned char *)(ADR_DISKIMG + 0x0200));
+	finfo = file_search("nihongo.fnt", (struct FILEINFO *)(ADR_DISKIMG + 0x2600), 224);
+	if(finfo != 0){
+		i = finfo->size;
+		nihongo = file_loadfile2(finfo->clustno, &i, fat);
+	}else{
+		nihongo = (unsigned char *)memman_alloc_4k(memman, 16 * 256 + 32 * 94 * 47);
+		/* 本来英語フォントの部分は英語フォント */
+		for(i = 0; i < 16 * 256; i++){
+			nihongo[i] = hankaku[i];
+		}
+
+		/* フォントがない部分は0xffで埋め尽くす */
+		for(i = 16 * 256; i < 16 * 256 + 32 * 94 * 47; i++){
+			nihongo[i] = 0xff;
+		}
+	}
+	*((int *)0x0fe8) = (int)nihongo;
+	memman_free_4k(memman, (int)fat, 4 * 2880);
 
 	for(;;){
 		if(buffer_status(&keycmd) > 0 && keycmd_wait < 0){
@@ -260,6 +287,7 @@ void HariMain(void)
 						task->tss.eax = (int)&(task->tss.esp0);
 						task->tss.eip = (int)asm_end_app;
 						io_sti();
+						task_run(task, -1, 0);
 					}
 				}
 				/* Shift + F2 */
@@ -347,6 +375,16 @@ void HariMain(void)
 												task->tss.eax = (int)&(task->tss.esp0);
 												task->tss.eip = (int)asm_end_app;
 												io_sti();
+												task_run(task, -1, 0);
+											}else{
+												task = sht->task;
+												sheet_updown(sht, -1);
+												keywin_off(key_win);
+												key_win = shtctl->sheets[shtctl->top - 1];
+												keywin_on(key_win);
+												io_cli();
+												buffer_put(&task->buf, 0, 4);
+												io_sti();
 											}
 										}
 										break;
@@ -364,7 +402,12 @@ void HariMain(void)
 				}
 			}
 			if(dat.tag == TAG_CONSOLE){
-				close_console(shtctl->sheets0 + dat.data);
+				if(dat.data >= 2024) {
+					sht2 = shtctl->sheets0 + (dat.data - 2024);
+					memman_free_4k(memman, (int)sht2->buf, 256 * 165 * 4);
+					sheet_free(sht2);
+				}else if(dat.data >= 1024) close_constask(taskctl->tasks0 + (dat.data - 1024));
+				else close_console(shtctl->sheets0 + dat.data);
 			}
 		}
 	}
@@ -388,18 +431,10 @@ void keywin_on(struct SHEET *key_win)
 	return;
 }
 
-struct SHEET *open_console(struct SHTCTL *shtctl, unsigned int memtotal)
+struct TASK *open_constask(struct SHEET *sht, unsigned int memtotal)
 {
 	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
-	struct SHEET *sht = sheet_alloc(shtctl);
-	unsigned char *buf = (unsigned char *)memman_alloc_4k(memman, 256 * 165 * 4);
 	struct TASK *task = task_alloc();
-	struct color black = {0x00, 0x00, 0x00, 0xff};
-
-	sht = sheet_alloc(shtctl);
-	sheet_setbuf(sht, buf, 256, 165);
-	make_window(sht, "console", 0);
-	make_textbox(sht, 8, 28, 240, 128, black);
 
 	task->cons_stack = memman_alloc_4k(memman, 64 * 1024);
 	task->tss.esp = task->cons_stack + 64 * 1024 - 12;
@@ -413,10 +448,23 @@ struct SHEET *open_console(struct SHTCTL *shtctl, unsigned int memtotal)
 	*((int *)(task->tss.esp + 4)) = (int)sht;
 	*((int *)(task->tss.esp + 8)) = memtotal;
 	task_run(task, 2, 2);
-
-	sht->task = task;
-	sht->flags |= 0x20;
 	buffer_init(&task->buf, 128, task);
+
+	return task;
+}
+
+struct SHEET *open_console(struct SHTCTL *shtctl, unsigned int memtotal)
+{
+	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
+	struct SHEET *sht = sheet_alloc(shtctl);
+	unsigned char *buf = (unsigned char *)memman_alloc_4k(memman, 256 * 165 * 4);
+	struct color black = {0x00, 0x00, 0x00, 0xff};
+
+	sheet_setbuf(sht, buf, 256, 165);
+	make_window(sht, "console", 0);
+	make_textbox(sht, 8, 28, 240, 128, black);
+	sht->task = open_constask(sht, memtotal);
+	sht->flags |= 0x20;
 
 	return sht;
 }

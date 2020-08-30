@@ -12,5 +12,10 @@ void HariMain(void)
 	win = api_openwin(buf, 150, 100, "star1");
 	api_boxfilwin(win,  6, 26, 143, 93, &black);
 	api_point(win, 75, 59, &yellow);
+
+	for(;;){
+		if(api_getkey(1) == 0x0a) break;
+	}
+
 	api_end();
 }

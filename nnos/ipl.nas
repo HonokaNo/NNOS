@@ -1,4 +1,4 @@
-CYLS	equ		10
+CYLS	equ		20
 
 		org		0x7c00
 
@@ -91,6 +91,6 @@ msg:
 		db		0x0a
 		db		0
 
-		resb	0x7dfe-$
+		resb	0x7dfe-$		; 0x7dfe‚Ü‚Å‚ð0x00‚Å–„‚ß‚é–½—ß
 
 		db		0x55,0xaa

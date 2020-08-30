@@ -100,6 +100,7 @@ void init_pic(void);
 #define LIMIT_BOTPAK	0x0007ffff
 #define AR_DATA32_RW	0x4092
 #define AR_CODE32_ER	0x409a
+#define AR_LDT			0x0082
 #define AR_TSS32		0x0089
 #define AR_INTGATE32	0x008e
 
@@ -255,8 +256,13 @@ struct TASK
 	int level, priority;
 	struct TSS32 tss;
 	struct BUFFER buf;
+	struct SEGMENT_DESCRIPTOR ldt[2];
 	struct CONSOLE *cons;
 	int ds_base, cons_stack;
+	struct FILEHANDLE *fhandle;
+	int *fat;
+	char *cmdline;
+	int langmode, langbyte1;
 };
 
 struct TASKLEVEL
@@ -273,6 +279,7 @@ struct TASKCTL
 	struct TASK tasks0[MAX_TASKS];
 };
 
+extern struct TASKCTL *taskctl;
 extern struct TIMER *task_timer;
 
 struct TASK *task_now(void);
@@ -290,6 +297,13 @@ struct CONSOLE
 	struct TIMER *timer;
 };
 
+struct FILEHANDLE
+{
+	char *buf;
+	int size;
+	int pos;
+};
+
 void console_task(struct SHEET *sht, unsigned int memtotal);
 void cons_putchar(struct CONSOLE *cons, int chr, char move);
 void cons_newline(struct CONSOLE *cons);
@@ -302,6 +316,9 @@ void cmd_neofetch(struct CONSOLE *cons);
 void cmd_dir(struct CONSOLE *cons);
 void cmd_type(struct CONSOLE *cons, int *fat, char *cmdline);
 void cmd_exit(struct CONSOLE *cons, int *fat);
+void cmd_start(struct CONSOLE *cons, char *cmdline, int memtotal);
+void cmd_ncst(struct CONSOLE *cons, char *cmdline, int memtotal);
+void cmd_langmode(struct CONSOLE *cons, char *cmdline);
 int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline);
 int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax);
 
@@ -316,6 +333,7 @@ struct FILEINFO
 void file_readfat(int *fat, unsigned char *img);
 void file_loadfile(int clustno, int size, char *buf, int *fat, char *img);
 struct FILEINFO *file_search(char *name, struct FILEINFO *finfo, int max);
+char *file_loadfile2(int clustno, int *psize, int *fat);
 
 void make_wtitle(struct SHEET *sht, char *title, char act);
 void make_window(struct SHEET *sht, char *title, char act);
@@ -329,3 +347,9 @@ void wait_KBC_sendready(void);
 void init_keyboard(void);
 void enable_mouse(struct MOUSE_DEC *mdec);
 int mouse_decode(struct MOUSE_DEC *mdec, unsigned char dat);
+
+struct TASK *open_constask(struct SHEET *sht, unsigned int memtotal);
+struct SHEET *open_console(struct SHTCTL *shtctl, unsigned int memtotal);
+
+int tek_getsize(unsigned char *p);
+int tek_decomp(unsigned char *p, char *q, int size);
