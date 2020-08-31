@@ -18,7 +18,7 @@ void HariMain(void)
 	api_putstrwin(win, x, y, &yellow, "*");
 
 	for(;;){
-		i = api_getkey(0);
+		i = api_getkey(1);
 		api_putstrwin(win, x, y, &black, "*");
 		if(i == '4' && x >   4) x -= 8;
 		if(i == '6' && x < 148) x += 8;

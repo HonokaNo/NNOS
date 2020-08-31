@@ -54,7 +54,6 @@ void make_wtitle(struct SHEET *sht, char *title, char act)
 	}
 
 	boxfill(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), tbc, 3, 3, sht->bxsize - 4, 20);
-	putfontstr_sht(sht, 24, 4, tc, tbc, title);
 
 	for(y = 0; y < 14; y++){
 		for(x = 0; x < 16; x++){
@@ -77,6 +76,8 @@ void make_wtitle(struct SHEET *sht, char *title, char act)
 			putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), (sht->bxsize - 38 + x), (5 + y), c);
 		}
 	}
+
+	putfontstr(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), 24, 4, tc, title);
 
 	return;
 }

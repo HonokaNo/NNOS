@@ -356,10 +356,10 @@ int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline)
 	}
 
 	if(finfo != 0){
-		p = (char *)memman_alloc_4k(memman, finfo->size);
-		file_loadfile(finfo->clustno, finfo->size, p, fat, (char *)(ADR_DISKIMG + 0x3e00));
+		appsiz = finfo->size;
+		p = file_loadfile2(finfo->clustno, &appsiz, fat);
 
-		if(finfo->size >= 36 && !strncmp(p + 4, "Hari", 4) && *p == 0x00){
+		if(appsiz >= 36 && !strncmp(p + 4, "Hari", 4) && *p == 0x00){
 			segsiz = *((int *)(p + 0x0000));
 			esp    = *((int *)(p + 0x000c));
 			datsiz = *((int *)(p + 0x0010));
@@ -367,8 +367,8 @@ int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline)
 
 			q = (char *)memman_alloc_4k(memman, segsiz);
 			task->ds_base = (int)q;
-			set_segmdesc(task->ldt + 0, finfo->size - 1, (int)p, AR_CODE32_ER + 0x60);
-			set_segmdesc(task->ldt + 1, segsiz - 1,      (int)q, AR_DATA32_RW + 0x60);
+			set_segmdesc(task->ldt + 0, appsiz - 1, (int)p, AR_CODE32_ER + 0x60);
+			set_segmdesc(task->ldt + 1, segsiz - 1, (int)q, AR_DATA32_RW + 0x60);
 
 			for(i = 0; i < datsiz; i++) q[esp + i] = p[dathrb + i];
 
@@ -391,7 +391,7 @@ int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline)
 			memman_free_4k(memman, (int)q, segsiz);
 			task->langbyte1 = 0;
 		}else cons_putstr0(cons, ".hrb file format error.\n");
-		memman_free_4k(memman, (int)p, finfo->size);
+		memman_free_4k(memman, (int)p, appsiz);
 		cons_newline(cons);
 		return 1;
 	}
@@ -472,7 +472,19 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 		sht = (struct SHEET *)(ebx & 0xfffffffe);
 		c = *((struct color *)(ebp + ds_base));
 		hrb_api_linewin(sht, eax, ecx, esi, edi, c);
-		if((ebx & 1) == 0) sheet_refresh(sht, eax, ecx, esi + 1, edi + 1);
+		if((ebx & 1) == 0){
+			if(eax > esi){
+				i = eax;
+				eax = esi;
+				esi = i;
+			}
+			if(ecx > edi){
+				i = ecx;
+				ecx = edi;
+				edi = i;
+			}
+			sheet_refresh(sht, eax, ecx, esi + 1, edi + 1);
+		}
 	}
 	if(edx == 14) sheet_free((struct SHEET *)ebx);
 	if(edx == 15){
@@ -561,10 +573,9 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 			finfo = file_search((char *)ebx + ds_base, (struct FILEINFO *)(ADR_DISKIMG + 0x2600), 224);
 			if(finfo != 0){
 				reg[7] = (int)fh;
-				fh->buf = (char *)memman_alloc_4k(memman, finfo->size);
 				fh->size = finfo->size;
 				fh->pos = 0;
-				file_loadfile(finfo->clustno, finfo->size, fh->buf, task->fat, (char *)(ADR_DISKIMG + 0x3e00));
+				fh->buf = file_loadfile2(finfo->clustno, &fh->size, task->fat);
 			}
 		}
 	}

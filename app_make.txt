@@ -3,7 +3,7 @@ include ../configure.txt
 default :
 	$(MAKE) $(APP).hrb
 
-$(APP).bim : $(APP).obj $(APILIBPATH)nnlib.lib Makefile ../app_make.txt
+$(APP).bim : $(APP).obj $(APILIBPATH)nnlib.lib ../stdlib/printf.obj Makefile ../app_make.txt
 	$(OBJ2BIM) @$(RULEFILE) out:$(APP).bim map:$(APP).map stack:$(STACK) \
 		$(APP).obj $(APILIBPATH)nnlib.lib
 
@@ -24,8 +24,14 @@ nnos.img : ../nnos/ipl.bin ../nnos/nnos.sys $(APP).hrb \
 %.obj : %.nas Makefile ../app_make.txt
 	$(NASK) $*.nas $*.obj $*.lst
 
-%.hrb : %.bim Makefile ../app_make.txt
-	$(BIM2HRB) $*.bim $*.hrb $(MALLOC)
+%.org : %.bim Makefile ../app_make.txt
+	$(BIM2HRB) $*.bim $*.org $(MALLOC)
+
+%.hrb : %.org Makefile ../app_make.txt
+	$(BIM2BIN) -osacmp in:$*.org out:$*.hrb
+
+#%.hrb : %.bim Makefile ../app_make.txt
+#	$(BIM2HRB) $*.bim $*.hrb $(MALLOC)
 
 run :
 	$(MAKE) nnos.img
@@ -46,6 +52,7 @@ clean :
 	-$(DEL) *.obj
 	-$(DEL) *.bim
 	-$(DEL) *.map
+	-$(DEL) *.org
 
 src_only :
 	$(MAKE) clean

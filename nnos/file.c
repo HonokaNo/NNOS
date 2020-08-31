@@ -77,7 +77,7 @@ char *file_loadfile2(int clustno, int *psize, int *fat)
 			tek_decomp(buf, buf2, size2);
 			memman_free_4k(memman, (int)buf, size);
 			buf = buf2;
-			*psize = size;
+			*psize = size2;
 		}
 	}
 	return buf;

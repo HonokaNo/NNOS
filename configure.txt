@@ -23,7 +23,7 @@ APILIBPATH   = ../library/
 # z_toolsにツールが入っているので基本変更する必要はない
 MAKE     = $(TOOLPATH)make -r
 NASK     = $(TOOLPATH)nask
-CC1      = $(TOOLPATH)cc1 -I$(INCPATH) -I../ -Os -Wall -quiet
+CC1      = $(TOOLPATH)cc1 -I$(INCPATH) -I../ -I ../stdlib -Os -Wall -quiet
 GAS2NASK = $(TOOLPATH)gas2nask -a
 OBJ2BIM  = $(TOOLPATH)obj2bim
 MAKEFONT = $(TOOLPATH)makefont
