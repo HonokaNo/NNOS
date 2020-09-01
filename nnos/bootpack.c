@@ -3,12 +3,12 @@
 #include "bootpack.h"
 
 struct BUFFER buffer;
+struct localtime lt;
 
 #define KEYCMD_LED	0xed
 
 void keywin_off(struct SHEET *key_win);
 void keywin_on(struct SHEET *key_win);
-struct SHEET *open_console(struct SHTCTL *shtctl, unsigned int memtotal);
 void close_constask(struct TASK *task);
 void close_console(struct SHEET *sht);
 
@@ -24,7 +24,6 @@ void HariMain(void)
 	struct color back, c;
 
 	struct BOOTINFO *binfo = (struct BOOTINFO *)ADR_BOOTINFO;
-	struct localtime lt;
 	char s[35];
 	unsigned int memtotal;
 	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;;
@@ -40,7 +39,7 @@ void HariMain(void)
 	int x, y, j, mmx = -1, mmy = -1;
 	struct SHEET *sht = 0, *key_win, *sht2;
 	struct FILEINFO *finfo;
-	int *fat, i;
+	int i, *fat;
 	unsigned char *nihongo;
 	extern char hankaku[4096];
 
@@ -88,19 +87,24 @@ void HariMain(void)
 
 	init_pit();
 
-	init_keyboard();
-	enable_mouse(&mdec);
-
 	/* ƒƒ‚ƒŠ—ÊŽæ“¾ */
 	memtotal = memtest(ADR_BOTPAK, 0xffffffff);
 	memman_init(memman);
 	memman_free(memman, 0x00001000, 0x0009e000);
 	memman_free(memman, 0x00400000, memtotal - 0x00400000);
 
+	fat = (int *)memman_alloc_4k(memman, 2880 * 4);
+	file_readfat(fat, (unsigned char *)(ADR_DISKIMG + 0x0200));
+
 	if(binfo->vmode == 8){
 		setPalette();
 		back = back8;
 	}else back = back24;
+
+	init_timerctl();
+
+	init_keyboard();
+	enable_mouse(&mdec);
 
 	shtctl = shtctl_init(memman, binfo->vram, binfo->scrnx, binfo->scrny);
 	*((int *)0x0fe4) = (int)shtctl;
@@ -125,7 +129,7 @@ void HariMain(void)
 	mx = (binfo->scrnx - 16) / 2;
 	my = (binfo->scrny - 28 - 16) / 2;
 
-	key_win = open_console(shtctl, memtotal);
+	key_win = open_console(shtctl, memtotal, fat);
 
 	if(binfo->vmode == 24 || binfo->vmode == 32){
 		sheet_slide(sht_back,    0,   0);
@@ -159,7 +163,7 @@ void HariMain(void)
 	/* ƒGƒ‰[‚ª‚¨‚«‚½‚ç‚à‚¤ˆê“x“Ç‚Þ */
 	if(lt.sec == 0xff) lt = readrtc();
 
-	sprintf(s, "%02X:%02X", lt.hour, lt.min);
+	sprintf(s, "%02d:%02d", lt.hour, lt.min);
 	putfontstr_sht(sht_back, binfo->scrnx - 45, binfo->scrny - 21, white, light_gray, s);
 
 	if(DEBUG){
@@ -179,8 +183,6 @@ void HariMain(void)
 	buffer_put(&keycmd, TAG_KEYBOARD, key_leds);
 
 	/* nihongo.fnt‚Ì“Ç‚Ýž‚Ý */
-	fat = (int *)memman_alloc_4k(memman, 4 * 2880);
-	file_readfat(fat, (unsigned char *)(ADR_DISKIMG + 0x0200));
 	finfo = file_search("nihongo.fnt", (struct FILEINFO *)(ADR_DISKIMG + 0x2600), 224);
 	if(finfo != 0){
 		i = finfo->size;
@@ -198,7 +200,6 @@ void HariMain(void)
 		}
 	}
 	*((int *)0x0fe8) = (int)nihongo;
-	memman_free_4k(memman, (int)fat, 4 * 2880);
 
 	for(;;){
 		if(buffer_status(&keycmd) > 0 && keycmd_wait < 0){
@@ -293,7 +294,7 @@ void HariMain(void)
 				/* Shift + F2 */
 				if(dat.data == 0x3c && key_shift != 0){
 					if(key_win != 0) keywin_off(key_win);
-					key_win = open_console(shtctl, memtotal);
+					key_win = open_console(shtctl, memtotal, fat);
 					sheet_slide(key_win, 32, 4);
 					sheet_updown(key_win, shtctl->top);
 					keywin_on(key_win);
@@ -431,7 +432,7 @@ void keywin_on(struct SHEET *key_win)
 	return;
 }
 
-struct TASK *open_constask(struct SHEET *sht, unsigned int memtotal)
+struct TASK *open_constask(struct SHEET *sht, unsigned int memtotal, int *fat)
 {
 	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
 	struct TASK *task = task_alloc();
@@ -449,11 +450,12 @@ struct TASK *open_constask(struct SHEET *sht, unsigned int memtotal)
 	*((int *)(task->tss.esp + 8)) = memtotal;
 	task_run(task, 2, 2);
 	buffer_init(&task->buf, 128, task);
+	task->fat = fat;
 
 	return task;
 }
 
-struct SHEET *open_console(struct SHTCTL *shtctl, unsigned int memtotal)
+struct SHEET *open_console(struct SHTCTL *shtctl, unsigned int memtotal, int *fat)
 {
 	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
 	struct SHEET *sht = sheet_alloc(shtctl);
@@ -463,7 +465,7 @@ struct SHEET *open_console(struct SHTCTL *shtctl, unsigned int memtotal)
 	sheet_setbuf(sht, buf, 256, 165);
 	make_window(sht, "console", 0);
 	make_textbox(sht, 8, 28, 240, 128, black);
-	sht->task = open_constask(sht, memtotal);
+	sht->task = open_constask(sht, memtotal, fat);
 	sht->flags |= 0x20;
 
 	return sht;

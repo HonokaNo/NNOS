@@ -196,6 +196,28 @@ API list:
 
 		eax:readed data size
 
+	27:get cmdline
+		edx:27
+		ebx:string buffer
+		ecx:max length
+
+	28:get langmode
+		edx:28
+
+		return:
+
+		eax:langmode 0=ASCII 1=SJIS 2=EUC-JP
+
+	29:fwrite
+		reserved
+
+	30:get time
+		edx:30
+
+		return:
+
+		eax:time struct
+
 (warn1):
 	(warn1)がついている関数では描画ごとにrefreshされます。
 	自動でrefreshを行わない場合、ebx(sheet num)に1を足して指定してください。

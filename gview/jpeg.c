@@ -8,6 +8,7 @@
  * 2003/05/12 | optimized DCT ( 20-bits fixed point, etc...) -> line 407-464 ( by I.Tak. )
  * 2003/09/27 | PICTURE0.BIN(DLL)用に改造 ( by くーみん )
  * 2003/09/28 | 各種バグフィクス＆多少の最適化 ( by H.Kawai )
+ * 2020/09/01 | 未使用変数の削除 + 戻り値のない関数のvoid化
  *
  */
 
@@ -147,7 +148,7 @@ int decode0_JPEG(struct DLL_STRPICENV *env,int size, UCHAR *fp0, int b_type, UCH
 
 unsigned short get_bits(JPEG *jpeg, int bit)
 {
-	unsigned char  c, c2;
+	unsigned char  c;
 	unsigned short ret;
 	unsigned long  buff;
 	int remain;
@@ -223,7 +224,7 @@ err:
 int jpeg_dqt(JPEG *jpeg)
 {
 	unsigned char c;
-	int i, j, v, size;
+	int i, j, size;
 
 	if (jpeg->fp + 2 > jpeg->fp1)
 		goto err;
@@ -266,7 +267,7 @@ int jpeg_dht(JPEG *jpeg)
 	unsigned code = 0;
 	unsigned char val;
 	int i, j, k, num, Li[17];
-	int len, max_val;
+	int len;
 	HUFF *table;
 
 	if (jpeg->fp + 2 > jpeg->fp1)
@@ -537,7 +538,7 @@ int jpeg_get_value(JPEG *jpeg,int size)
 // ハフマンデコード＋逆量子化＋逆ジグザグ
 int jpeg_decode_huff(JPEG *jpeg,int scan,int *block, UCHAR *zigzag_table)
 {
-    int size, len, val, run, index;
+    int size, val, run, index;
     int *pQt = (int *)(jpeg->dqt[jpeg->scan_qt[scan]]);
 
     // DC
@@ -587,7 +588,7 @@ void jpeg_mcu_bitblt(int *src, int *dest, int width,
                      int x0, int y0, int x1, int y1)
 {
 	int w, h;
-	int x, y, x2, y2;
+	int x, y, y2;
 	w = x1 - x0;
 	h = y1 - y0;
 	dest += y0 * width + x0;
@@ -602,10 +603,10 @@ void jpeg_mcu_bitblt(int *src, int *dest, int width,
 }
 
 // MCU一個変換
-int jpeg_decode_mcu(JPEG *jpeg, UCHAR *zigzag_table)
+void jpeg_decode_mcu(JPEG *jpeg, UCHAR *zigzag_table)
 {
 	int scan, val;
-	int unit, i, h, v;
+	int h, v;
 	int *p, hh, vv;
 	int block[64], dest[64];
 
@@ -635,17 +636,17 @@ int jpeg_decode_mcu(JPEG *jpeg, UCHAR *zigzag_table)
 			}
 		}
 	}
+	return;
 }
 
 // YCrCb=>RGB
 
-int jpeg_decode_yuv(JPEG *jpeg, int h, int v, unsigned char *rgb, int b_type)
+void jpeg_decode_yuv(JPEG *jpeg, int h, int v, unsigned char *rgb, int b_type)
 {
 	int x0, y0, x, y, x1, y1;
 	int *py;
 	int Y12, V;
 	int mw, mh, w;
-	int i;
 
 	mw = jpeg->mcu_width;
 	mh = jpeg->mcu_height;
@@ -711,8 +712,6 @@ void jpeg_decode(JPEG *jpeg, UCHAR *rgb, int b_type)
 {
 	int h_unit, v_unit;
 	int mcu_count, h, v;
-	int val;
-	unsigned char m;
 
     UCHAR zigzag_table[64];
 

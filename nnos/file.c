@@ -11,7 +11,7 @@ void file_readfat(int *fat, unsigned char *img)
 	return;
 }
 
-void file_loadfile(int clustno, int size, char *buf, int *fat, char *img)
+void file_loadfile(int clustno, int size, char *buf, char *img, int *fat)
 {
 	int i;
 
@@ -69,7 +69,7 @@ char *file_loadfile2(int clustno, int *psize, int *fat)
 	char *buf, *buf2;
 
 	buf = (char *)memman_alloc_4k(memman, size);
-	file_loadfile(clustno, size, buf, fat, (char *)(ADR_DISKIMG + 0x3e00));
+	file_loadfile(clustno, size, buf, (char *)(ADR_DISKIMG + 0x3e00), fat);
 	if(size >= 17){
 		size2 = tek_getsize(buf);
 		if(size2 > 0){

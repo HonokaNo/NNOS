@@ -5,7 +5,7 @@ default :
 
 $(APP).bim : $(APP).obj $(APILIBPATH)nnlib.lib ../stdlib/printf.obj Makefile ../app_make.txt
 	$(OBJ2BIM) @$(RULEFILE) out:$(APP).bim map:$(APP).map stack:$(STACK) \
-		$(APP).obj $(APILIBPATH)nnlib.lib
+		$(APP).obj $(APILIBPATH)nnlib.lib ../stdlib/printf.obj
 
 nnos.img : ../nnos/ipl.bin ../nnos/nnos.sys $(APP).hrb \
 		Makefile ../app_make.txt
@@ -30,9 +30,6 @@ nnos.img : ../nnos/ipl.bin ../nnos/nnos.sys $(APP).hrb \
 %.hrb : %.org Makefile ../app_make.txt
 	$(BIM2BIN) -osacmp in:$*.org out:$*.hrb
 
-#%.hrb : %.bim Makefile ../app_make.txt
-#	$(BIM2HRB) $*.bim $*.hrb $(MALLOC)
-
 run :
 	$(MAKE) nnos.img
 	$(COPY) $(TOOLPATH)qemu/fdimage0.bin
@@ -52,7 +49,6 @@ clean :
 	-$(DEL) *.obj
 	-$(DEL) *.bim
 	-$(DEL) *.map
-	-$(DEL) *.org
 
 src_only :
 	$(MAKE) clean

@@ -106,7 +106,7 @@ mts_loop:
 		cmp		esi,[ebx]
 		jne		mts_fin
 		mov		[ebx],edx
-		add		eax,0x4000				; 16KBずつチェック
+		add		eax,0x10000				; 64KBずつチェック
 		cmp		eax,[esp+12+8]
 		jbe		mts_loop
 		pop		ebx

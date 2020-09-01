@@ -17,20 +17,39 @@ struct localtime readrtc()
 		/* •b‚ğæ“¾ */
 		i = readcmos(0x00);
 		k = (i >> 4) * 10 + (i & 0x0f);
-		lt.sec = i;
-		if(lt.sec > 0x60) lt.sec = 0xff;
+		lt.sec = k;
+		if(lt.sec > 60) lt.sec = 0xff;
 
 		/* •ª‚ğæ“¾ */
 		i = readcmos(0x02);
 		k = (i >> 4) * 10 + (i & 0x0f);
-		lt.min = i;
-		if(lt.sec > 0x60) lt.sec = 0xff;
+		lt.min = k;
+		if(lt.min > 60) lt.sec = 0xff;
 
 		/* ‚ğæ“¾ */
 		i = readcmos(0x04);
 		k = (i >> 4) * 10 + (i & 0x0f);
-		lt.hour = i;
-		if(lt.sec > 0x12) lt.sec = 0xff;
+		lt.hour = k;
+		if(lt.hour > 12) lt.sec = 0xff;
+
+		/* “ú‚ğæ“¾ */
+		i = readcmos(0x07);
+		k = (i >> 4) * 10 + (i & 0x0f);
+		lt.day = k;
+		if(lt.day > 31) lt.sec = 0xff;
+
+		/* Œ‚ğæ“¾ */
+		i = readcmos(0x08);
+		k = (i >> 4) * 10 + (i & 0x0f);
+		lt.month = k;
+		if(lt.month > 12) lt.sec = 0xff;
+
+		/* ”N‰º2Œ…‚ğæ“¾ */
+		i = readcmos(0x09);
+		lt.y1 = (i >> 4) * 10 + (i & 0x0f);
+
+		i = readcmos(0x32);
+		lt.y0 = (i >> 4) * 10 + (i & 0x0f);
 	}
 
 	return lt;

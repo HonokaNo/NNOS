@@ -1,3 +1,4 @@
+/* naskfunc.nas */
 void io_hlt(void);
 void io_cli(void);
 void io_sti(void);
@@ -17,6 +18,7 @@ void farcall(int eip, int cs);
 void start_app(int eip, int cs, int esp, int ds, int *tss_esp0);
 void asm_end_app(void);
 
+/* asminterrupt.nas */
 void asm_inthandler03(void);
 void asm_inthandler0c(void);
 void asm_inthandler0d(void);
@@ -64,7 +66,8 @@ void setPalette(void);
 
 struct localtime
 {
-	unsigned short year;
+	/* XXYY XX:y0 YY:y1 */
+	unsigned char y0, y1;
 	unsigned char month, day;
 	unsigned char hour, min, sec;
 };
@@ -224,12 +227,13 @@ struct TIMERCTL
 {
 	unsigned int count, next;
 	struct TIMER *t0;
-	struct TIMER timers0[MAX_TIMER];
+	struct TIMER *timers0;
 };
 
 extern struct TIMERCTL timerctl;
 
 void init_pit(void);
+void init_timerctl(void);
 struct TIMER *timer_alloc(void);
 void timer_free(struct TIMER *timer);
 void timer_init(struct TIMER *timer, struct BUFFER *buf, unsigned char data);
@@ -260,9 +264,9 @@ struct TASK
 	struct CONSOLE *cons;
 	int ds_base, cons_stack;
 	struct FILEHANDLE *fhandle;
-	int *fat;
 	char *cmdline;
 	int langmode, langbyte1;
+	int *fat;
 };
 
 struct TASKLEVEL
@@ -309,17 +313,16 @@ void cons_putchar(struct CONSOLE *cons, int chr, char move);
 void cons_newline(struct CONSOLE *cons);
 void cons_putstr0(struct CONSOLE *cons, char *s);
 void cons_putstr1(struct CONSOLE *cons, char *s, int l);
-void cons_runcmd(char *cmdline, struct CONSOLE *cons, int *fat, unsigned memtotal);
+void cons_runcmd(char *cmdline, struct CONSOLE *cons, unsigned memtotal);
 void cmd_mem(struct CONSOLE *cons, unsigned int memtotal);
 void cmd_cls(struct CONSOLE *cons);
 void cmd_neofetch(struct CONSOLE *cons);
 void cmd_dir(struct CONSOLE *cons);
-void cmd_type(struct CONSOLE *cons, int *fat, char *cmdline);
-void cmd_exit(struct CONSOLE *cons, int *fat);
+void cmd_exit(struct CONSOLE *cons);
 void cmd_start(struct CONSOLE *cons, char *cmdline, int memtotal);
 void cmd_ncst(struct CONSOLE *cons, char *cmdline, int memtotal);
 void cmd_langmode(struct CONSOLE *cons, char *cmdline);
-int cmd_app(struct CONSOLE *cons, int *fat, char *cmdline);
+int cmd_app(struct CONSOLE *cons, char *cmdline);
 int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax);
 
 struct FILEINFO
@@ -331,7 +334,6 @@ struct FILEINFO
 };
 
 void file_readfat(int *fat, unsigned char *img);
-void file_loadfile(int clustno, int size, char *buf, int *fat, char *img);
 struct FILEINFO *file_search(char *name, struct FILEINFO *finfo, int max);
 char *file_loadfile2(int clustno, int *psize, int *fat);
 
@@ -348,8 +350,8 @@ void init_keyboard(void);
 void enable_mouse(struct MOUSE_DEC *mdec);
 int mouse_decode(struct MOUSE_DEC *mdec, unsigned char dat);
 
-struct TASK *open_constask(struct SHEET *sht, unsigned int memtotal);
-struct SHEET *open_console(struct SHTCTL *shtctl, unsigned int memtotal);
+struct TASK *open_constask(struct SHEET *sht, unsigned int memtotal, int *fat);
+struct SHEET *open_console(struct SHTCTL *shtctl, unsigned int memtotal, int *fat);
 
 int tek_getsize(unsigned char *p);
 int tek_decomp(unsigned char *p, char *q, int size);

@@ -7,6 +7,13 @@ struct color
 	char alpha;
 };
 
+struct time
+{
+	unsigned char y0, y1;
+	unsigned char month, day;
+	unsigned char hour, min, sec;
+};
+
 void api_putchar(int c);
 void api_putstr0(char *s);
 void api_putstr1(char *s, int len);
@@ -35,5 +42,6 @@ int api_fsize(int fhandle, int mode);
 int api_fread(char *buf, int maxsize, int fhandle);
 int api_cmdline(char *buf, int maxsize);
 int api_getlang(void);
+void api_getclock(struct time *time);
 
 #endif

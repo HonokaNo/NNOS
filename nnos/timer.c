@@ -10,13 +10,21 @@ struct TIMERCTL timerctl;
 
 void init_pit(void)
 {
-	struct TIMER *t;
-	int i;
-
 	io_out8(PIT_CTRL, 0x34);
 	io_out8(PIT_CNT0, 0x9c);
 	io_out8(PIT_CNT0, 0x2e);
 	timerctl.count = 0;
+	timerctl.next = 0xffffffff;
+	return;
+}
+
+void init_timerctl(void)
+{
+	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
+	struct TIMER *t;
+	int i;
+
+	timerctl.timers0 = (struct TIMER *)memman_alloc_4k(memman, MAX_TIMER * sizeof(struct TIMER));
 	for(i = 0; i < MAX_TIMER; i++){
 		timerctl.timers0[i].flags = 0;
 	}
@@ -25,7 +33,7 @@ void init_pit(void)
 	t->flags = TIMER_FLAGS_USING;
 	t->next = 0;
 	timerctl.t0 = t;
-	timerctl.next = 0xffffffff;
+
 	return;
 }
 
