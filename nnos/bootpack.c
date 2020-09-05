@@ -12,6 +12,16 @@ void keywin_on(struct SHEET *key_win);
 void close_constask(struct TASK *task);
 void close_console(struct SHEET *sht);
 
+struct rgb
+{
+	unsigned char b, g, r, t;
+};
+
+int info_JPEG(struct DLL_STRPICENV *env, int *info, int size, char *fp);
+int decode0_JPEG(struct DLL_STRPICENV *env, int size, char *fp, int b_type, char *buf, int skip);
+int info_BMP(struct DLL_STRPICENV *env, int *info, int size, char *fp);
+int decode0_BMP(struct DLL_STRPICENV *env, int size, char *fp, int b_type, char *buf, int skip);
+
 #define DEBUG 0
 
 void HariMain(void)
@@ -36,12 +46,17 @@ void HariMain(void)
 	struct TASK *task_a, *task;
 	struct BUFFER keycmd;
 	int key_shift = 0, key_leds = (binfo->leds >> 4) & 7, keycmd_wait = -1;
-	int x, y, j, mmx = -1, mmy = -1;
+	int x, y, j, mmx = -0x7fffffff, mmy = -0x7fffffff;
 	struct SHEET *sht = 0, *key_win, *sht2;
 	struct FILEINFO *finfo;
 	int i, *fat;
 	unsigned char *nihongo;
 	extern char hankaku[4096];
+	int fsiz, info[8], bgx, bgy;
+	char *bbuf;
+	struct rgb *ctable;
+//	struct DLL_STRPICENV *env;
+	struct DLL_STRPICENV env;
 
 	static char keytable0[0x80] = {
 		0,   0,   '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', 0x08, 0,
@@ -109,11 +124,46 @@ void HariMain(void)
 	shtctl = shtctl_init(memman, binfo->vram, binfo->scrnx, binfo->scrny);
 	*((int *)0x0fe4) = (int)shtctl;
 
+	printlog("start back");
 	/* 背景 */
 	sht_back = sheet_alloc(shtctl);
-	buf_back = (unsigned char *)memman_alloc_4k(memman, binfo->scrnx * binfo->scrny * VMODE_WINDOW / 8);
+	buf_back = (unsigned char *)memman_alloc_4k(memman, binfo->scrnx * binfo->scrny * 4);
 	sheet_setbuf(sht_back, buf_back, binfo->scrnx, binfo->scrny);
-	init_screen(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), binfo->scrnx, binfo->scrny, binfo->vmode == 8 ? back8 : back);
+	init_screen(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), binfo->scrnx, binfo->scrny, back);
+
+//	if(binfo->vmode == 24 || binfo->vmode == 32){
+		finfo = file_search("backg.jpg", (struct FILEINFO *)(ADR_DISKIMG + 0x2600), 224);
+		fsiz = finfo->size;
+		bbuf = file_loadfile2(finfo->clustno, &fsiz, fat);
+		ctable = (struct rgb *)memman_alloc_4k(memman, sizeof(struct color) * binfo->scrnx * (binfo->scrny - 26));
+		i = info_JPEG(&env, info, fsiz, bbuf);
+	printlog("%d %d\n", info[2], info[3]);
+
+		if(i == 0) info_BMP(&env, info, fsiz, bbuf);
+
+		if(i != 0){
+			/* info[2] = width info[3] = height */
+			if(info[2] == binfo->scrnx && info[3] == binfo->scrny - 26){
+				if(info[0] == 1) decode0_BMP(&env, fsiz, bbuf, 4, (char *)ctable, 0);
+				else i = decode0_JPEG(&env, fsiz, bbuf, 4, (char *)ctable, 0);
+				if(i == 0){
+					for(bgy = 0; bgy < binfo->scrny - 26; bgy++){
+						for(bgx = 0; bgx < binfo->scrnx; bgx++){
+							struct color c;
+							c.r = ctable[bgy * binfo->scrnx + bgx].r;
+							c.g = ctable[bgy * binfo->scrnx + bgx].g;
+							c.b = ctable[bgy * binfo->scrnx + bgx].b;
+							c.alpha = 0xff;
+
+							putPixel(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), bgx, bgy, c);
+						}
+					}
+				}
+			}
+		}
+		memman_free_4k(memman, (int)bbuf, fsiz);
+		memman_free_4k(memman, (int)ctable, binfo->scrnx * (binfo->scrny - 26) * 4);
+//	}
 
 	task_a = task_init(memman);
 	buffer.task = task_a;
@@ -314,7 +364,7 @@ void HariMain(void)
 				lt = readrtc();
 				/* エラーがおきたらもう一度読む */
 				if(lt.sec == 0xff) lt = readrtc();
-				sprintf(s, "%02X:%02X", lt.hour, lt.min);
+				sprintf(s, "%02d:%02d", lt.hour, lt.min);
 				putfontstr_sht_ref(sht_back, binfo->scrnx - 45, binfo->scrny - 21, white, light_gray, s);
 			}
 			if(dat.tag == TAG_MOUSE){
@@ -361,10 +411,34 @@ void HariMain(void)
 											key_win = sht;
 											keywin_on(key_win);
 										}
-										if(3 <= x && x <= sht->bxsize - 3 && 3 <= y && y < 21){
+										if(3 <= x && x <= sht->bxsize - 3 && 3 <= y && y < 38){
 											/* ウィンドウを移動する */
 											mmx = mx;
 											mmy = my;
+										}
+										if(key_win->bxsize - 38 <= x && x < key_win->bxsize - 22 && 5 <= y && y < 19){
+											/* 最大化ボタン */
+											if(sht->bxsize != binfo->scrnx && sht->bysize != binfo->scrny - 26){
+												task = sht->task;
+
+												memman_free_4k(memman, (int)sht->buf, sht->bxsize * (sht->bysize - 26) * 4);
+												char *buf2 = (unsigned char *)memman_alloc_4k(memman, (binfo->scrnx * (binfo->scrny - 26) * 4));
+												sheet_setbuf(sht, buf2, binfo->scrnx, binfo->scrny - 26);
+												make_window(sht, sht->title, 0);
+
+												sheet_slide(sht, 0, 0);
+												/* 256 165 */
+												make_textbox(sht, 8, 28, sht->bxsize - 16, sht->bysize - 35, black);
+												putfontstr_sht(sht, 8, 28, white, black, ">");
+
+												io_sti();
+												buffer_put(&sht->task->buf, 0, 5);
+												io_cli();
+
+												sheet_refreshsub(sht_back->ctl, 0, 0, binfo->scrnx, binfo->scrny, 0, sht_back->ctl->top);
+
+												task_run(task, -1, 0);
+											}
 										}
 										if(sht->bxsize - 21 <= x && x < sht->bxsize - 5 && 5 <= y && y < 19){
 											/* ×ボタンを押された */
@@ -399,7 +473,7 @@ void HariMain(void)
 							mmx = mx;
 							mmy = my;
 						}
-					}else mmx = -1;
+					}else mmx = -0x7fffffff;
 				}
 			}
 			if(dat.tag == TAG_CONSOLE){

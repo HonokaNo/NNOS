@@ -19,10 +19,8 @@ void HariMain(void)
 	i = getnum(&p, 9);
 	if(i == INVALID) api_putstr0("error!\n");
 	else{
-		/* sprintf‚Å—áŠO‚ª‚¨‚«‚Ä‚é */
 		sprintf(s, "= %d = 0x%x\n", i, i);
 		api_putstr0(s);
-//		printf("= %d = 0x%x\n", i, i);
 	}
 	api_end();
 }

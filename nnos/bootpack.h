@@ -17,9 +17,12 @@ void farjmp(int eip, int cs);
 void farcall(int eip, int cs);
 void start_app(int eip, int cs, int esp, int ds, int *tss_esp0);
 void asm_end_app(void);
+void clts(void);
+void fnsave(int *addr);
+void frstor(int *addr);
 
 /* asminterrupt.nas */
-void asm_inthandler03(void);
+void asm_inthandler07(void);
 void asm_inthandler0c(void);
 void asm_inthandler0d(void);
 void asm_inthandler20(void);
@@ -42,6 +45,14 @@ struct BOOTINFO
 };
 
 void printlog(char *format, ...);
+/* JPEG */
+struct DLL_STRPICENV
+{
+	int work[64 * 1024 / 4];
+};
+
+int info_JPEG(struct DLL_STRPICENV *env, int *info, int size, char *fp);
+int decode0_JPEG(struct DLL_STRPICENV *env, int size, char *fp, int b_type, char *buf, int skip);
 
 /* windowに描画関数を実行する場合のvmode */
 #define VMODE_WINDOW	32
@@ -61,6 +72,7 @@ void boxfill(char vmode, char *vram, int scline, struct color c, int x0, int y0,
 void putfont(char vmode, char *vram, int scline, int x, int y, struct color c, char *font);
 void putfontstr(char vmode, char *vram, int scline, int x, int y, struct color c, unsigned char *s);
 int eqColor(struct color c1, struct color c2);
+unsigned char rgb2pal(int r, int g, int b, int x, int y);
 
 void setPalette(void);
 
@@ -182,8 +194,10 @@ int memman_free_4k(struct MEMMAN *man, unsigned int addr, unsigned int size);
 
 struct SHEET
 {
-	unsigned char *buf;
+	unsigned char *buf, *title;
 	int bxsize, bysize, vx0, vy0, height, flags;
+	/* 作成時のサイズ */
+	int mix, miy;
 	struct SHTCTL *ctl;
 	struct TASK *task;
 };
@@ -201,6 +215,7 @@ struct SHEET *sheet_alloc(struct SHTCTL *ctl);
 void sheet_setbuf(struct SHEET *sht, unsigned char *buf, int xsize, int ysize);
 void sheet_updown(struct SHEET *sht, int height);
 void sheet_refresh(struct SHEET *sht, int bx0, int by0, int bx1, int by1);
+void sheet_refreshsub(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, int h0, int h1);
 void sheet_slide(struct SHEET *sht, int vx0, int vy0);
 void sheet_free(struct SHEET *sht);
 
@@ -267,6 +282,7 @@ struct TASK
 	char *cmdline;
 	int langmode, langbyte1;
 	int *fat;
+	int fpu_register[108 / 4];
 };
 
 struct TASKLEVEL
@@ -281,6 +297,7 @@ struct TASKCTL
 	char lv_change;
 	struct TASKLEVEL level[MAX_TASKLEVELS];
 	struct TASK tasks0[MAX_TASKS];
+	struct TASK *fpu_task;
 };
 
 extern struct TASKCTL *taskctl;
@@ -344,6 +361,7 @@ void putfontstr_sht_ref(struct SHEET *sht, int x, int y, struct color c, struct 
 void make_textbox(struct SHEET *sht, int x0, int y0, int sx, int sy, struct color c);
 struct color getColorWin(struct SHEET *sht, int bx, int by);
 void change_wtitle(struct SHEET *sht, char act);
+void window_resize(struct SHEET *sht, int nx, int ny);
 
 void wait_KBC_sendready(void);
 void init_keyboard(void);

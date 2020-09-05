@@ -38,6 +38,7 @@ struct SHEET *sheet_alloc(struct SHTCTL *ctl)
 			sht->flags = SHEET_USE;
 			sht->height = -1;
 			sht->task = 0;
+			sht->title = 0;
 			return sht;
 		}
 	}
@@ -49,6 +50,9 @@ void sheet_setbuf(struct SHEET *sht, unsigned char *buf, int xsize, int ysize)
 	sht->buf = buf;
 	sht->bxsize = xsize;
 	sht->bysize = ysize;
+	/* Šg‘åŒãƒTƒCƒY‚ð–ß‚¹‚é‚æ‚¤‚É•Û‘¶ */
+	sht->mix = xsize;
+	sht->miy = ysize;
 	return;
 }
 

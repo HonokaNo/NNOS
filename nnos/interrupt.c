@@ -25,15 +25,20 @@ void init_pic(void)
 	return;
 }
 
-int *inthandler03(int *esp)
+int *inthandler07(int *esp)
 {
 	struct TASK *task = task_now();
-	struct CONSOLE *cons = task->cons;
-	char s[30];
-	cons_putstr0(cons, "\nINT 03 :\n Break Exception.\n");
-	sprintf(s, "EIP = %08X CS = %05d \n", esp[11], esp[12] / 8);
-	cons_putstr0(cons, s);
-	return &(task->tss.esp0);
+
+	io_cli();
+	clts();
+	if(taskctl->fpu_task != task){
+		if(taskctl->fpu_task != 0) fnsave(taskctl->fpu_task->fpu_register);
+		frstor(task->fpu_register);
+		taskctl->fpu_task = task;
+	}
+	io_sti();
+
+	return 0;
 }
 
 int *inthandler0c(int *esp)

@@ -56,6 +56,14 @@ void console_task(struct SHEET *sht, unsigned int memtotal)
 					}
 				}
 				if(dat.data == 4) cmd_exit(&cons);
+				if(dat.data == 5){
+//					boxfill(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), cons.cur_c, cons.cur_x, cons.cur_y, cons.cur_x + 7, cons.cur_y + 15);
+//					sheet_refresh(sht, cons.cur_x, cons.cur_y, cons.cur_x + 8, cons.cur_y + 16);
+					cons.cur_x = 16;
+					cons.cur_y = 28;
+//					boxfill(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), cons.cur_c, cons.cur_x, cons.cur_y, cons.cur_x + 7, cons.cur_y + 15);
+//					sheet_refresh(sht, cons.cur_x, cons.cur_y, cons.cur_x + 8, cons.cur_y + 16);
+				}
 			}
 			if(dat.tag == TAG_KEYBOARD){
 				if(dat.data == 8){
@@ -74,7 +82,7 @@ void console_task(struct SHEET *sht, unsigned int memtotal)
 
 					cons_putchar(&cons, '>', 1);
 				}else{
-					if(cons.cur_x < 240){
+					if(cons.cur_x < cons.sht->bxsize - 16){
 						cmdline[cons.cur_x / 8 - 2] = dat.data;
 						cons_putchar(&cons, dat.data, 1);
 					}
@@ -111,7 +119,7 @@ void cons_putchar(struct CONSOLE *cons, int chr, char move)
 				putfontstr_sht_ref(cons->sht, cons->cur_x, cons->cur_y, white, black, " ");
 			}
 			cons->cur_x += 8;
-			if(cons->cur_x == 8 + 240) cons_newline(cons);
+			if(cons->cur_x == 8 + (cons->sht->bxsize - 16)) cons_newline(cons);
 			if(((cons->cur_x - 8) & 0x1f) == 0) break;
 		}
 	}else if(s[0] == 0x0a) cons_newline(cons);
@@ -120,7 +128,7 @@ void cons_putchar(struct CONSOLE *cons, int chr, char move)
 		putfontstr_sht_ref(cons->sht, cons->cur_x, cons->cur_y, white, black, s);
 		if(move){
 			cons->cur_x += 8;
-			if(cons->cur_x == 8 + 240) cons_newline(cons);
+			if(cons->cur_x == 8 + (cons->sht->bxsize - 16)) cons_newline(cons);
 		}
 	}
 	return;
@@ -132,11 +140,11 @@ void cons_newline(struct CONSOLE *cons)
 	struct color black = {0x00, 0x00, 0x00, 0xff};
 	struct TASK *task = task_now();
 
-	if(cons->cur_y < 28 + 112) cons->cur_y += 16;
+	if(cons->cur_y < 28 + (cons->sht->bysize - 37 - 32)) cons->cur_y += 16;
 	else{
 		if(cons->sht != 0){
-			for(y = 28; y < 28 + 112; y++){
-				for(x = 8; x < 8 + 240; x++){
+			for(y = 28; y < 28 + (cons->sht->bysize - 37 - 16); y++){
+				for(x = 8; x < 8 + (cons->sht->bxsize - 16); x++){
 					cons->sht->buf[y * WINDOW_SCLINE(cons->sht) + x * VMODE_WINDOW / 8 + 0] = cons->sht->buf[(y + 16) * WINDOW_SCLINE(cons->sht) + x * VMODE_WINDOW / 8 + 0];
 					cons->sht->buf[y * WINDOW_SCLINE(cons->sht) + x * VMODE_WINDOW / 8 + 1] = cons->sht->buf[(y + 16) * WINDOW_SCLINE(cons->sht) + x * VMODE_WINDOW / 8 + 1];
 					cons->sht->buf[y * WINDOW_SCLINE(cons->sht) + x * VMODE_WINDOW / 8 + 2] = cons->sht->buf[(y + 16) * WINDOW_SCLINE(cons->sht) + x * VMODE_WINDOW / 8 + 2];
@@ -144,13 +152,38 @@ void cons_newline(struct CONSOLE *cons)
 				}
 			}
 
-			for(y = 28 + 112; y < 28 + 128; y++){
-				for(x = 8; x < 8 + 240; x++){
+			for(y = 28 + (cons->sht->bysize - 37 - 16); y < 28 + (cons->sht->bysize - 37); y++){
+				for(x = 8; x < 8 + (cons->sht->bxsize - 16); x++){
 					putPixel(VMODE_WINDOW, cons->sht->buf, WINDOW_SCLINE(cons->sht), x, y, black);
 				}
 			}
 
-			sheet_refresh(cons->sht, 8, 28, 8 + 240, 28 + 128);
+			if(cons->cur_y + 16 > cons->sht->bysize - 2){
+				for(y = 28; y < 28 + (cons->sht->bysize - 37 - 32); y++){
+					for(x = 8; x < 8 + (cons->sht->bxsize - 16); x++){
+						cons->sht->buf[y * WINDOW_SCLINE(cons->sht) + x * VMODE_WINDOW / 8 + 0] = cons->sht->buf[(y + 16) * WINDOW_SCLINE(cons->sht) + x * VMODE_WINDOW / 8 + 0];
+						cons->sht->buf[y * WINDOW_SCLINE(cons->sht) + x * VMODE_WINDOW / 8 + 1] = cons->sht->buf[(y + 16) * WINDOW_SCLINE(cons->sht) + x * VMODE_WINDOW / 8 + 1];
+						cons->sht->buf[y * WINDOW_SCLINE(cons->sht) + x * VMODE_WINDOW / 8 + 2] = cons->sht->buf[(y + 16) * WINDOW_SCLINE(cons->sht) + x * VMODE_WINDOW / 8 + 2];
+						cons->sht->buf[y * WINDOW_SCLINE(cons->sht) + x * VMODE_WINDOW / 8 + 3] = cons->sht->buf[(y + 16) * WINDOW_SCLINE(cons->sht) + x * VMODE_WINDOW / 8 + 3];
+					}
+				}
+
+				for(y = 28 + (cons->sht->bysize - 37 - 32); y < 28 + (cons->sht->bysize - 16); y++){
+					for(x = 8; x < 8 + (cons->sht->bxsize - 16); x++){
+						putPixel(VMODE_WINDOW, cons->sht->buf, WINDOW_SCLINE(cons->sht), x, y, black);
+					}
+				}
+
+				for(y = 28 + (cons->sht->bysize - 37 - 16); y < 28 + (cons->sht->bysize - 37); y++){
+					for(x = 8; x < 8 + (cons->sht->bxsize - 16); x++){
+						putPixel(VMODE_WINDOW, cons->sht->buf, WINDOW_SCLINE(cons->sht), x, y, black);
+					}
+				}
+
+				cons->cur_y -= 32;
+			}
+
+			sheet_refresh(cons->sht, 8, 28, 8 + (cons->sht->bxsize - 16), 28 + (cons->sht->bysize - 37));
 		}
 	}
 	cons->cur_x = 8;

@@ -96,6 +96,8 @@ struct TASK *task_init(struct MEMMAN *memman)
 	idle->tss.gs = 1 * 8;
 	task_run(idle, MAX_TASKLEVELS - 1, 1);
 
+	taskctl->fpu_task = 0;
+
 	return task;
 }
 
@@ -122,6 +124,11 @@ struct TASK *task_alloc(void)
 			task->tss.gs = 0;
 			task->tss.iomap = 0x40000000;
 			task->tss.ss0 = 0;
+
+			task->fpu_register[0] = 0x037f; /* control word */
+			task->fpu_register[1] = 0x0000; /* status word */
+			task->fpu_register[2] = 0xffff; /* tag word */
+			for(i = 3; i < 108 / 4; i++) task->fpu_register[i] = 0;
 			return task;
 		}
 	}

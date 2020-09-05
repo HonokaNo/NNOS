@@ -79,6 +79,8 @@ void make_wtitle(struct SHEET *sht, char *title, char act)
 
 	putfontstr(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), 24, 4, tc, title);
 
+	sht->title = title;
+
 	return;
 }
 
@@ -195,5 +197,21 @@ void change_wtitle(struct SHEET *sht, char act)
 		}
 	}
 	sheet_refresh(sht, 3, 3, xsize, 21);
+	return;
+}
+
+void window_resize(struct SHEET *sht, int nx, int ny)
+{
+	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
+
+	memman_free_4k(memman, (int)sht->buf, sht->bxsize * sht->bysize * 4);
+	sht->buf = (unsigned char *)memman_alloc_4k(memman, (nx * ny * 4));
+	sht->bxsize = nx;
+	sht->bysize = ny;
+
+	make_window(sht, sht->title, 0);
+
+	sheet_refresh(sht, 0, 0, nx, ny);
+
 	return;
 }

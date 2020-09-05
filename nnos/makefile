@@ -2,7 +2,7 @@ include ../configure.txt
 
 OBJS_BOOTPACK = bootpack.obj naskfunc.obj hankaku.obj graphic.obj dsctbl.obj asminterrupt.obj interrupt.obj \
 				memory.obj buffer.obj rtc.obj sheet.obj parallel.obj timer.obj mtask.obj console.obj file.obj \
-				window.obj ps2.obj tek.obj
+				window.obj ps2.obj tek.obj alloca.obj bmp.obj jpeg.obj
 
 # デフォルト動作
 
@@ -25,7 +25,7 @@ hankaku.obj : hankaku.bin makefile
 	$(BIN2OBJ) $< $@ _hankaku
 
 bootpack.bim : $(OBJS_BOOTPACK) makefile
-	$(OBJ2BIM) @$(RULEFILE) out:$@ stack:3136k map:bootpack.map $(OBJS_BOOTPACK)
+	$(OBJ2BIM) @$(RULEFILE) out:$@ stack:3192k map:bootpack.map $(OBJS_BOOTPACK)
 
 bootpack.hrb : bootpack.bim makefile
 	$(BIM2HRB) $< $@ 0
@@ -48,6 +48,9 @@ endif
 %.obj : %.nas Makefile
 	$(NASK) $*.nas $*.obj $*.lst
 
+%.obj : %.nasm Makefile
+	$(NASM) -fwin32 $*.nasm -o $*.obj -l $*.lst
+
 # コマンド
 
 clean :
@@ -58,6 +61,7 @@ clean :
 	-$(DEL) *.map
 	-$(DEL) *.bim
 	-$(DEL) *.hrb
+	-$(DEL) backg.*
 
 src_only :
 	$(MAKE) clean

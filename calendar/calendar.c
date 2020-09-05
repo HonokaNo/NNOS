@@ -5,11 +5,10 @@ int day_of_week(struct time time);
 
 void HariMain(void)
 {
-	struct color white = {0xff, 0xff, 0xff, 0xff};
 	struct color black = {0x00, 0x00, 0x00, 0xff};
 	struct color yellow = {0xff, 0xff, 0x00, 0xff};
 
-	char *array[7] = {0, "Sun.", "Mon.", "Tue.", "Wed.", "Thu.", "Fri.", "Sat."};
+	char *array[7] = {"Sun.", "Mon.", "Tue.", "Wed.", "Thu.", "Fri.", "Sat."};
 
 	char buf[150 * 66 * 4], s[12];
 	int win;

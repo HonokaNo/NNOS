@@ -14,6 +14,7 @@ void init_gdtidt(void)
 	for(i = 0; i <= LIMIT_IDT / 8; i++) set_gatedesc(idt + i, 0, 0, 0);
 	load_idtr(LIMIT_IDT, ADR_IDT);
 
+	set_gatedesc(idt + 0x07, (int)asm_inthandler07, 2 * 8, AR_INTGATE32);
 	set_gatedesc(idt + 0x0c, (int)asm_inthandler0c, 2 * 8, AR_INTGATE32);
 	set_gatedesc(idt + 0x0d, (int)asm_inthandler0d, 2 * 8, AR_INTGATE32);
 	set_gatedesc(idt + 0x20, (int)asm_inthandler20, 2 * 8, AR_INTGATE32);

@@ -17,6 +17,7 @@
 		GLOBAL	_start_app
 		GLOBAL	_asm_hrb_api
 		GLOBAL	_asm_end_app
+		GLOBAL	_clts, _fnsave, _frstor
 
 		EXTERN	_hrb_api
 
@@ -177,4 +178,18 @@ _asm_end_app:
 		mov		esp,[eax]
 		mov		dword [eax+4],0
 		popad
+		ret
+
+_clts:
+		clts
+		ret
+
+_fnsave:
+		mov		eax,[esp+4]
+		fnsave	[eax]
+		ret
+
+_frstor:
+		mov		eax,[esp+4]
+		frstor	[eax]
 		ret

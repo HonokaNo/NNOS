@@ -37,11 +37,22 @@ int api_gettimer(int mode);
 void api_beep(int tone);
 int api_fopen(char *fname);
 int api_fclose(int fhandle);
+
+#define FSEEK_SET		0
+#define FSEEK_CUR		1
+#define FSEEK_END		2
+
 int api_fseek(int fhandle, int offset, int mode);
 int api_fsize(int fhandle, int mode);
 int api_fread(char *buf, int maxsize, int fhandle);
 int api_cmdline(char *buf, int maxsize);
+
+#define LANGMODE_ASCII		0
+#define LANGMODE_SJIS		1
+#define LANGMODE_EUC		2
+
 int api_getlang(void);
+
 void api_getclock(struct time *time);
 
 #endif

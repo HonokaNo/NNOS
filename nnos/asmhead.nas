@@ -1,5 +1,12 @@
 [INSTRSET "i486p"]
 
+; âÊñ ÉÇÅ[Éh
+; äÓñ{:
+;   0x10f  320x 200 8:8:8 color
+;   0x112  640x 480 8:8:8 color
+;   0x115  800x 600 8:8:8 color
+;   0x118 1024x 768 8:8:8 color
+;   0x11b 1280x1024 8:8:8 color
 VIDEOMODE	equ		0x118
 
 BOTPAK	equ		0x00280000
@@ -104,6 +111,9 @@ pipelineflush:
 		mov		fs,ax
 		mov		gs,ax
 		mov		ss,ax
+
+; init FPU
+		fninit
 
 		mov		esi,bootpack
 		mov		edi,BOTPAK

@@ -15,7 +15,8 @@ nnos.img : nnos/ipl.bin nnos/nnos.sys Makefile \
 		sosu/sosu.hrb type/type.hrb iroha/iroha.hrb chklang/chklang.hrb \
 		notrec/notrec.hrb bball/bball.hrb invader/invader.hrb \
 		calc/calc.hrb tview/tview.hrb mmlplay/mmlplay.hrb gview/gview.hrb \
-		print/print.hrb calendar/calendar.hrb
+		print/print.hrb calendar/calendar.hrb sincurve/sincurve.hrb \
+		nnos/backg.jpg
 	$(EDIMG)   imgin:$(TOOLPATH)fdimg0at.tek \
 		wbinimg src:nnos/ipl.bin len:512 from:0 to:0 \
 		copy from:nnos/nnos.sys to:@: \
@@ -46,6 +47,7 @@ nnos.img : nnos/ipl.bin nnos/nnos.sys Makefile \
 		copy from:gview/gview.hrb to:@: \
 		copy from:print/print.hrb to:@: \
 		copy from:calendar/calendar.hrb to:@: \
+		copy from:sincurve/sincurve.hrb to:@: \
 		copy from:nihongo/nihongo.fnt to:@: \
 		copy from:euc.txt to:@: \
 		copy from:mmldata/daigo.mml to:@: \
@@ -54,6 +56,7 @@ nnos.img : nnos/ipl.bin nnos/nnos.sys Makefile \
 		copy from:mmldata/kirakira.mml to:@: \
 		copy from:picdata/fujisan.jpg to:@: \
 		copy from:picdata/night.bmp to:@: \
+		copy from:nnos/backg.jpg to:@: \
 		imgout:nnos.img
 
 # コマンド
@@ -91,6 +94,7 @@ full :
 	$(MAKE) -C gview
 	$(MAKE) -C print
 	$(MAKE) -C calendar
+	$(MAKE) -C sincurve
 
 run_full :
 	$(MAKE) full
@@ -136,6 +140,7 @@ clean_full :
 	$(MAKE) -C gview	clean
 	$(MAKE) -C print	clean
 	$(MAKE) -C calendar	clean
+	$(MAKE) -C sincurve	clean
 
 src_only_full :
 	$(MAKE) -C nnos		src_only
@@ -165,9 +170,15 @@ src_only_full :
 	$(MAKE) -C gview	src_only
 	$(MAKE) -C print	src_only
 	$(MAKE) -C calendar	src_only
+	$(MAKE) -C sincurve	src_only
 	-$(DEL) nnos.img
 
 refresh :
 	$(MAKE) full
 	$(MAKE) clean_full
 	-$(DEL) nnos.img
+
+nnos/backg.jpg: $(BACKGROUND)
+	$(COPY) $(BACKGROUND) nnos/background_.jpg
+	$(BIM2BIN) -osacmp in:nnos/background_.jpg out:nnos/backg.jpg
+	$(DEL) nnos/background_.jpg
