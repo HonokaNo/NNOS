@@ -12,6 +12,7 @@ struct time
 	unsigned char y0, y1;
 	unsigned char month, day;
 	unsigned char hour, min, sec;
+	unsigned char dayofweek;
 };
 
 void api_putchar(int c);

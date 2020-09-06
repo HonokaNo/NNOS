@@ -61,7 +61,7 @@ clean :
 	-$(DEL) *.map
 	-$(DEL) *.bim
 	-$(DEL) *.hrb
-	-$(DEL) backg.*
+	-$(DEL) backg.ima
 
 src_only :
 	$(MAKE) clean

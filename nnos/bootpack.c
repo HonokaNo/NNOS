@@ -55,7 +55,6 @@ void HariMain(void)
 	int fsiz, info[8], bgx, bgy;
 	char *bbuf;
 	struct rgb *ctable;
-//	struct DLL_STRPICENV *env;
 	struct DLL_STRPICENV env;
 
 	static char keytable0[0x80] = {
@@ -124,20 +123,18 @@ void HariMain(void)
 	shtctl = shtctl_init(memman, binfo->vram, binfo->scrnx, binfo->scrny);
 	*((int *)0x0fe4) = (int)shtctl;
 
-	printlog("start back");
 	/* ”wŒi */
 	sht_back = sheet_alloc(shtctl);
 	buf_back = (unsigned char *)memman_alloc_4k(memman, binfo->scrnx * binfo->scrny * 4);
 	sheet_setbuf(sht_back, buf_back, binfo->scrnx, binfo->scrny);
 	init_screen(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), binfo->scrnx, binfo->scrny, back);
 
-//	if(binfo->vmode == 24 || binfo->vmode == 32){
-		finfo = file_search("backg.jpg", (struct FILEINFO *)(ADR_DISKIMG + 0x2600), 224);
+	if(!DEBUG){
+		finfo = file_search("backg.ima", (struct FILEINFO *)(ADR_DISKIMG + 0x2600), 224);
 		fsiz = finfo->size;
 		bbuf = file_loadfile2(finfo->clustno, &fsiz, fat);
 		ctable = (struct rgb *)memman_alloc_4k(memman, sizeof(struct color) * binfo->scrnx * (binfo->scrny - 26));
 		i = info_JPEG(&env, info, fsiz, bbuf);
-	printlog("%d %d\n", info[2], info[3]);
 
 		if(i == 0) info_BMP(&env, info, fsiz, bbuf);
 
@@ -163,7 +160,7 @@ void HariMain(void)
 		}
 		memman_free_4k(memman, (int)bbuf, fsiz);
 		memman_free_4k(memman, (int)ctable, binfo->scrnx * (binfo->scrny - 26) * 4);
-//	}
+	}
 
 	task_a = task_init(memman);
 	buffer.task = task_a;

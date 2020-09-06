@@ -8,6 +8,6 @@
 [SECTION .text]
 
 __alloca:
+		add		eax,-4
 		sub		esp,eax
-		add		esp,4
-		jmp		dword [esp+eax-4]
+		jmp		dword [esp+eax]

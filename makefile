@@ -16,7 +16,7 @@ nnos.img : nnos/ipl.bin nnos/nnos.sys Makefile \
 		notrec/notrec.hrb bball/bball.hrb invader/invader.hrb \
 		calc/calc.hrb tview/tview.hrb mmlplay/mmlplay.hrb gview/gview.hrb \
 		print/print.hrb calendar/calendar.hrb sincurve/sincurve.hrb \
-		nnos/backg.jpg
+		nnos/backg.ima
 	$(EDIMG)   imgin:$(TOOLPATH)fdimg0at.tek \
 		wbinimg src:nnos/ipl.bin len:512 from:0 to:0 \
 		copy from:nnos/nnos.sys to:@: \
@@ -56,9 +56,8 @@ nnos.img : nnos/ipl.bin nnos/nnos.sys Makefile \
 		copy from:mmldata/kirakira.mml to:@: \
 		copy from:picdata/fujisan.jpg to:@: \
 		copy from:picdata/night.bmp to:@: \
-		copy from:nnos/backg.jpg to:@: \
+		copy from:nnos/backg.ima to:@: \
 		imgout:nnos.img
-
 # コマンド
 
 run :
@@ -95,6 +94,7 @@ full :
 	$(MAKE) -C print
 	$(MAKE) -C calendar
 	$(MAKE) -C sincurve
+	$(MAKE) nnos.img
 
 run_full :
 	$(MAKE) full
@@ -178,7 +178,7 @@ refresh :
 	$(MAKE) clean_full
 	-$(DEL) nnos.img
 
-nnos/backg.jpg: $(BACKGROUND)
-	$(COPY) $(BACKGROUND) nnos/background_.jpg
-	$(BIM2BIN) -osacmp in:nnos/background_.jpg out:nnos/backg.jpg
-	$(DEL) nnos/background_.jpg
+nnos/backg.ima: $(BACKGROUND)
+	$(COPY) $(BACKGROUND) nnos/background_.ima
+	$(BIM2BIN) -osacmp in:nnos/background_.ima out:nnos/backg.ima
+	$(DEL) nnos/background_.ima

@@ -363,7 +363,7 @@ int cmd_app(struct CONSOLE *cons, char *cmdline)
 	struct TASK *task = task_now();
 	struct SHTCTL *shtctl;
 	struct SHEET *sht;
-	char name[18], *p, *q;
+	char name[18], *p, *q, s[30];
 	int i, segsiz, datsiz, esp, dathrb, appsiz;
 
 	for(i = 0; i < 13; i++){
@@ -386,6 +386,8 @@ int cmd_app(struct CONSOLE *cons, char *cmdline)
 		appsiz = finfo->size;
 		p = file_loadfile2(finfo->clustno, &appsiz, cons->sht->task->fat);
 
+		if(p == 0) goto memory_error;
+
 		if(appsiz >= 36 && !strncmp(p + 4, "Hari", 4) && *p == 0x00){
 			segsiz = *((int *)(p + 0x0000));
 			esp    = *((int *)(p + 0x000c));
@@ -393,6 +395,11 @@ int cmd_app(struct CONSOLE *cons, char *cmdline)
 			dathrb = *((int *)(p + 0x0014));
 
 			q = (char *)memman_alloc_4k(memman, segsiz);
+			if(q == 0){
+				memman_free_4k(memman, (int)p, appsiz);
+				goto memory_error;
+			}
+
 			task->ds_base = (int)q;
 			set_segmdesc(task->ldt + 0, appsiz - 1, (int)p, AR_CODE32_ER + 0x60);
 			set_segmdesc(task->ldt + 1, segsiz - 1, (int)q, AR_DATA32_RW + 0x60);
@@ -422,6 +429,10 @@ int cmd_app(struct CONSOLE *cons, char *cmdline)
 		cons_newline(cons);
 		return 1;
 	}
+	return 0;
+
+memory_error:
+	cons_putstr0(cons, "memory alloc error.");
 	return 0;
 }
 
@@ -658,6 +669,7 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 		tbuf[4] = lt.hour;
 		tbuf[5] = lt.min;
 		tbuf[6] = lt.sec;
+		tbuf[7] = lt.dayofweek;
 		for(i = 0; i < 7; i++){
 			*((char *)ebx + ds_base + i) = tbuf[i];
 		}

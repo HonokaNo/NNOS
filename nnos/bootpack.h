@@ -82,6 +82,7 @@ struct localtime
 	unsigned char y0, y1;
 	unsigned char month, day;
 	unsigned char hour, min, sec;
+	unsigned char dayofweek;
 };
 
 int readcmos(unsigned char addr);

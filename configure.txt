@@ -12,7 +12,7 @@ endif
 
 # 背景として使うbmp/jpegファイルのパス
 # 画像サイズは 横幅 x (縦幅 - 26) である必要がある
-BACKGROUND = background/b320.jpg
+BACKGROUND = background/Gochiusa.jpg
 
 # 以下変更が必要な領域
 

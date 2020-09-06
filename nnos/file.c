@@ -69,11 +69,15 @@ char *file_loadfile2(int clustno, int *psize, int *fat)
 	char *buf, *buf2;
 
 	buf = (char *)memman_alloc_4k(memman, size);
+	if(buf == 0) return 0;
+
 	file_loadfile(clustno, size, buf, (char *)(ADR_DISKIMG + 0x3e00), fat);
 	if(size >= 17){
 		size2 = tek_getsize(buf);
 		if(size2 > 0){
 			buf2 = (char *)memman_alloc_4k(memman, size2);
+			if(buf2 == 0) return 0;
+
 			tek_decomp(buf, buf2, size2);
 			memman_free_4k(memman, (int)buf, size);
 			buf = buf2;

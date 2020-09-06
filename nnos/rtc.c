@@ -32,6 +32,9 @@ struct localtime readrtc()
 		lt.hour = k;
 		if(lt.hour > 12) lt.sec = 0xff;
 
+		i = readcmos(0x06);
+		lt.dayofweek = i;
+
 		/* “ú‚ğæ“¾ */
 		i = readcmos(0x07);
 		k = (i >> 4) * 10 + (i & 0x0f);
@@ -46,10 +49,12 @@ struct localtime readrtc()
 
 		/* ”N‰º2Œ…‚ğæ“¾ */
 		i = readcmos(0x09);
-		lt.y1 = (i >> 4) * 10 + (i & 0x0f);
+		k = (i >> 4) * 10 + (i & 0x0f);
+		lt.y1 = k;
 
 		i = readcmos(0x32);
-		lt.y0 = (i >> 4) * 10 + (i & 0x0f);
+		k = (i >> 4) * 10 + (i & 0x0f);
+		lt.y0 = k;
 	}
 
 	return lt;
