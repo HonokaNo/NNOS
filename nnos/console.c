@@ -57,12 +57,12 @@ void console_task(struct SHEET *sht, unsigned int memtotal)
 				}
 				if(dat.data == 4) cmd_exit(&cons);
 				if(dat.data == 5){
-//					boxfill(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), cons.cur_c, cons.cur_x, cons.cur_y, cons.cur_x + 7, cons.cur_y + 15);
-//					sheet_refresh(sht, cons.cur_x, cons.cur_y, cons.cur_x + 8, cons.cur_y + 16);
+					/* 前のカーソルが見えちゃうので消す */
+					if(cons.cur_x < cons.sht->bxsize && cons.cur_y < cons.sht->bysize){
+						boxfill(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), black, cons.cur_x, cons.cur_y, cons.cur_x + 7, cons.cur_y + 15);
+					}
 					cons.cur_x = 16;
 					cons.cur_y = 28;
-//					boxfill(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), cons.cur_c, cons.cur_x, cons.cur_y, cons.cur_x + 7, cons.cur_y + 15);
-//					sheet_refresh(sht, cons.cur_x, cons.cur_y, cons.cur_x + 8, cons.cur_y + 16);
 				}
 			}
 			if(dat.tag == TAG_KEYBOARD){
@@ -231,8 +231,10 @@ void cmd_mem(struct CONSOLE *cons, unsigned int memtotal)
 	if(memtotal / (1024 * 1024) >= 1024) sprintf(s, "total   %dGB\n", memtotal / (1024 * 1024 * 1024));
 	else sprintf(s, "total   %dMB\n", memtotal / (1024 * 1024));
 	cons_putstr0(cons, s);
-	if(memman_total(memman) / 1024 >= 1024) sprintf(s, "free    %dMB\n\n", memman_total(memman) / (1024 * 1024));
-	else sprintf(s, "free    %dKB\n\n", memman_total(memman) / 1024);
+	if(memman_total(memman) / 1024 >= 1024) sprintf(s, "free    %dMB\n", memman_total(memman) / (1024 * 1024));
+	else sprintf(s, "free    %dKB\n", memman_total(memman) / 1024);
+	cons_putstr0(cons, s);
+	sprintf(s, "losts %d lostsize %d\n\n", memman->losts, memman->lostsize);
 	cons_putstr0(cons, s);
 	return;
 }
@@ -363,7 +365,7 @@ int cmd_app(struct CONSOLE *cons, char *cmdline)
 	struct TASK *task = task_now();
 	struct SHTCTL *shtctl;
 	struct SHEET *sht;
-	char name[18], *p, *q, s[30];
+	char name[18], *p, *q;
 	int i, segsiz, datsiz, esp, dathrb, appsiz;
 
 	for(i = 0; i < 13; i++){
@@ -468,7 +470,7 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 		sht->task = task;
 		sht->flags |= 0x10;
 		sheet_setbuf(sht, (char *)ebx + ds_base, esi, edi);
-		make_window(sht, (char *)(ecx + ds_base), 0);
+		make_window(sht, (char *)(ecx + ds_base), 0, 0);
 		sheet_slide(sht, (shtctl->xsize - esi) / 2, (shtctl->ysize - edi) / 2);
 		sheet_updown(sht, shtctl->top);
 		reg[7] = (int)sht;

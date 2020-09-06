@@ -1,7 +1,7 @@
 #include "bootpack.h"
 #include <string.h>
 
-void make_wtitle(struct SHEET *sht, char *title, char act)
+void make_wtitle(struct SHEET *sht, char *title, char act, char bs)
 {
 	static char closebtn[14][16] = {
 		"OOOOOOOOOOOOOOO@",
@@ -30,6 +30,22 @@ void make_wtitle(struct SHEET *sht, char *title, char act)
 		"OQQ@QQQQQQQ@QQ$@",
 		"OQQ@QQQQQQQ@QQ$@",
 		"OQQ@QQQQQQQ@QQ$@",
+		"OQQ@@@@@@@@@QQ$@",
+		"OQQQQQQQQQQQQQ$@",
+		"O$$$$$$$$$$$$$$@",
+		"@@@@@@@@@@@@@@@@"
+	};
+	static char ssizebtn[14][16] = {
+		"OOOOOOOOOOOOOOO@",
+		"OQQQQQQQQQQQQQ$@",
+		"OQQ@@@@@@@@@QQ$@",
+		"OQQ@QQQQQQQ@QQ$@",
+		"OQQ@Q@@@@@Q@QQ$@",
+		"OQQ@Q@QQQ@Q@QQ$@",
+		"OQQ@Q@QQQ@Q@QQ$@",
+		"OQQ@Q@QQQ@Q@QQ$@",
+		"OQQ@Q@QQQ@Q@QQ$@",
+		"OQQ@Q@@@@@@@QQ$@",
 		"OQQ@@@@@@@@@QQ$@",
 		"OQQQQQQQQQQQQQ$@",
 		"O$$$$$$$$$$$$$$@",
@@ -66,14 +82,27 @@ void make_wtitle(struct SHEET *sht, char *title, char act)
 		}
 	}
 
-	for(y = 0; y < 14; y++){
-		for(x = 0; x < 16; x++){
-			b = sizebtn[y][x];
-			if(b == '@') c = black;
-			else if(b == '$') c = dark_gray;
-			else if(b == 'Q') c = light_gray;
-			else c = white;
-			putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), (sht->bxsize - 38 + x), (5 + y), c);
+	if(bs){
+		for(y = 0; y < 14; y++){
+			for(x = 0; x < 16; x++){
+				b = ssizebtn[y][x];
+				if(b == '@') c = black;
+				else if(b == '$') c = dark_gray;
+				else if(b == 'Q') c = light_gray;
+				else c = white;
+				putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), (sht->bxsize - 38 + x), (5 + y), c);
+			}
+		}
+	}else{
+		for(y = 0; y < 14; y++){
+			for(x = 0; x < 16; x++){
+				b = sizebtn[y][x];
+				if(b == '@') c = black;
+				else if(b == '$') c = dark_gray;
+				else if(b == 'Q') c = light_gray;
+				else c = white;
+				putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), (sht->bxsize - 38 + x), (5 + y), c);
+			}
 		}
 	}
 
@@ -84,7 +113,7 @@ void make_wtitle(struct SHEET *sht, char *title, char act)
 	return;
 }
 
-void make_window(struct SHEET *sht, char *title, char act)
+void make_window(struct SHEET *sht, char *title, char act, char bs)
 {
 	struct color      black = {0x00, 0x00, 0x00, 0xff};
 	struct color      white = {0xff, 0xff, 0xff, 0xff};
@@ -102,7 +131,7 @@ void make_window(struct SHEET *sht, char *title, char act)
 	boxfill(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht),  dark_blue,               3,               3, sht->bxsize - 4,              20);
 	boxfill(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht),  dark_gray,               1, sht->bysize - 2, sht->bxsize - 2, sht->bysize - 2);
 	boxfill(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht),      black,               0, sht->bysize - 1, sht->bxsize - 1, sht->bysize - 1);
-	make_wtitle(sht, title, act);
+	make_wtitle(sht, title, act, bs);
 
 	return;
 }
@@ -200,7 +229,7 @@ void change_wtitle(struct SHEET *sht, char act)
 	return;
 }
 
-void window_resize(struct SHEET *sht, int nx, int ny)
+/*void window_resize(struct SHEET *sht, int nx, int ny)
 {
 	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
 
@@ -209,9 +238,9 @@ void window_resize(struct SHEET *sht, int nx, int ny)
 	sht->bxsize = nx;
 	sht->bysize = ny;
 
-	make_window(sht, sht->title, 0);
+	make_window(sht, sht->title, 0, 0);
 
 	sheet_refresh(sht, 0, 0, nx, ny);
 
 	return;
-}
+}*/

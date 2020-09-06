@@ -198,9 +198,10 @@ struct SHEET
 	unsigned char *buf, *title;
 	int bxsize, bysize, vx0, vy0, height, flags;
 	/* çÏê¨éûÇÃÉTÉCÉY */
-	int mix, miy;
+	int mix, miy, wx, wy;
 	struct SHTCTL *ctl;
 	struct TASK *task;
+	char bs;
 };
 
 struct SHTCTL
@@ -355,8 +356,8 @@ void file_readfat(int *fat, unsigned char *img);
 struct FILEINFO *file_search(char *name, struct FILEINFO *finfo, int max);
 char *file_loadfile2(int clustno, int *psize, int *fat);
 
-void make_wtitle(struct SHEET *sht, char *title, char act);
-void make_window(struct SHEET *sht, char *title, char act);
+void make_wtitle(struct SHEET *sht, char *title, char act, char bs);
+void make_window(struct SHEET *sht, char *title, char act, char bs);
 void putfontstr_sht(struct SHEET *sht, int x, int y, struct color c, struct color bc, char *s);
 void putfontstr_sht_ref(struct SHEET *sht, int x, int y, struct color c, struct color bc, char *s);
 void make_textbox(struct SHEET *sht, int x0, int y0, int sx, int sy, struct color c);

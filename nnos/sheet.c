@@ -39,6 +39,7 @@ struct SHEET *sheet_alloc(struct SHTCTL *ctl)
 			sht->height = -1;
 			sht->task = 0;
 			sht->title = 0;
+			sht->bs = 0;
 			return sht;
 		}
 	}

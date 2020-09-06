@@ -413,28 +413,56 @@ void HariMain(void)
 											mmx = mx;
 											mmy = my;
 										}
-										if(key_win->bxsize - 38 <= x && x < key_win->bxsize - 22 && 5 <= y && y < 19){
-											/* 最大化ボタン */
-											if(sht->bxsize != binfo->scrnx && sht->bysize != binfo->scrny - 26){
-												task = sht->task;
+										if(sht->bxsize - 38 <= x && x < sht->bxsize - 22 && 5 <= y && y < 19){
+											if(!sht->bs){
+												/* 最大化ボタン */
+												if(sht->bxsize != binfo->scrnx && sht->bysize != binfo->scrny - 26){
+/*													task = sht->task;
 
-												memman_free_4k(memman, (int)sht->buf, sht->bxsize * (sht->bysize - 26) * 4);
-												char *buf2 = (unsigned char *)memman_alloc_4k(memman, (binfo->scrnx * (binfo->scrny - 26) * 4));
-												sheet_setbuf(sht, buf2, binfo->scrnx, binfo->scrny - 26);
-												make_window(sht, sht->title, 0);
+													memman_free_4k(memman, (int)sht->buf, sht->bxsize * sht->bysize * 4);
+													char *buf2 = (unsigned char *)memman_alloc_4k(memman, (binfo->scrnx * (binfo->scrny - 26) * 4));
+													sheet_setbuf(sht, buf2, binfo->scrnx, binfo->scrny - 26);
+													make_window(sht, sht->title, sht == key_win ? 1 : 0, 1);
 
-												sheet_slide(sht, 0, 0);
-												/* 256 165 */
-												make_textbox(sht, 8, 28, sht->bxsize - 16, sht->bysize - 35, black);
-												putfontstr_sht(sht, 8, 28, white, black, ">");
+													sht->wx = sht->vx0;
+													sht->wy = sht->vy0;
 
-												io_sti();
-												buffer_put(&sht->task->buf, 0, 5);
-												io_cli();
+													sheet_slide(sht, 0, 0);
+													make_textbox(sht, 8, 28, sht->bxsize - 16, sht->bysize - 35, black);
+													putfontstr_sht(sht, 8, 28, white, black, ">");
 
-												sheet_refreshsub(sht_back->ctl, 0, 0, binfo->scrnx, binfo->scrny, 0, sht_back->ctl->top);
+													io_sti();
+													buffer_put(&sht->task->buf, 0, 5);
+													io_cli();
 
-												task_run(task, -1, 0);
+													sheet_refreshsub(sht_back->ctl, 0, 0, binfo->scrnx, binfo->scrny, 0, sht_back->ctl->top);
+													sht->bs = 0;
+
+													task_run(task, -1, 0);*/
+												}
+											}else{
+												/* サイズ戻すボタン */
+												if(sht->bxsize != sht->mix && sht->bysize != sht->miy){
+/*													task = sht->task;
+
+													memman_free_4k(memman, (int)sht->buf, sht->bxsize * sht->bysize * 4);
+													char *buf2 = (unsigned char *)memman_alloc_4k(memman, sht->mix * sht->miy * 4);
+													sheet_setbuf(sht, buf2, sht->mix, sht->miy);
+													make_window(sht, sht->title, sht == key_win ? 1 : 0, 0);
+
+													sheet_slide(sht, sht->wx, sht->wy);
+													make_textbox(sht, 8, 28, sht->bxsize - 16, sht->bysize - 35, black);
+													putfontstr_sht(sht, 8, 28, white, black, ">");
+
+													io_sti();
+													buffer_put(&sht->task->buf, 0, 5);
+													io_cli();
+
+													sheet_refreshsub(sht_back->ctl, 0, 0, binfo->scrnx, binfo->scrny, 0, sht_back->ctl->top);
+													sht->bs = 0;
+
+													task_run(task, -1, 0);*/
+												}
 											}
 										}
 										if(sht->bxsize - 21 <= x && x < sht->bxsize - 5 && 5 <= y && y < 19){
@@ -534,7 +562,7 @@ struct SHEET *open_console(struct SHTCTL *shtctl, unsigned int memtotal, int *fa
 	struct color black = {0x00, 0x00, 0x00, 0xff};
 
 	sheet_setbuf(sht, buf, 256, 165);
-	make_window(sht, "console", 0);
+	make_window(sht, "console", 0, 0);
 	make_textbox(sht, 8, 28, 240, 128, black);
 	sht->task = open_constask(sht, memtotal, fat);
 	sht->flags |= 0x20;
