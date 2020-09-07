@@ -58,9 +58,9 @@ void console_task(struct SHEET *sht, unsigned int memtotal)
 				if(dat.data == 4) cmd_exit(&cons);
 				if(dat.data == 5){
 					/* 前のカーソルが見えちゃうので消す */
-					if(cons.cur_x < cons.sht->bxsize && cons.cur_y < cons.sht->bysize){
-						boxfill(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), black, cons.cur_x, cons.cur_y, cons.cur_x + 7, cons.cur_y + 15);
-					}
+					if(cons.cur_x < cons.sht->bxsize && cons.cur_y < cons.sht->bysize)
+					boxfill(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), black, cons.cur_x, cons.cur_y, cons.cur_x + 7, cons.cur_y + 15);
+					sheet_refresh(cons.sht, cons.cur_x, cons.cur_y, cons.cur_x + 8, cons.cur_y + 16);
 					cons.cur_x = 16;
 					cons.cur_y = 28;
 				}
@@ -442,6 +442,11 @@ void hrb_api_linewin(struct SHEET *sht, int x0, int y0, int x1, int y1, struct c
 
 extern struct localtime lt;
 
+struct ret
+{
+	short v0, v1;
+};
+
 int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax)
 {
 	struct TASK *task = task_now();
@@ -449,6 +454,7 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 	struct SHTCTL *shtctl = (struct SHTCTL *)*((int *)0x0fe4);
 	struct SHEET *sht;
 	struct color white = {0xff, 0xff, 0xff, 0xff};
+	struct color black = {0x00, 0x00, 0x00, 0xff};
 	struct color invisible_cursor = {0x00, 0x00, 0x00, 0x00};
 	struct color c;
 	struct BUFDATA dat;
@@ -470,7 +476,7 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 		sht->task = task;
 		sht->flags |= 0x10;
 		sheet_setbuf(sht, (char *)ebx + ds_base, esi, edi);
-		make_window(sht, (char *)(ecx + ds_base), 0, 0);
+		make_window(sht, (char *)(ecx + ds_base), 0, 0, (char)eax);
 		sheet_slide(sht, (shtctl->xsize - esi) / 2, (shtctl->ysize - edi) / 2);
 		sheet_updown(sht, shtctl->top);
 		reg[7] = (int)sht;
@@ -552,6 +558,19 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 						buffer_put(sys_buf, 0, cons->sht - shtctl->sheets0 + 2024);
 						cons->sht = 0;
 						io_sti();
+					}
+					if(dat.data == 5){
+						/* 前のカーソルが見えちゃうので消す */
+						if(cons->cur_x < cons->sht->bxsize && cons->cur_y < cons->sht->bysize)
+						boxfill(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), black, cons->cur_x, cons->cur_y, cons->cur_x + 7, cons->cur_y + 15);
+						sheet_refresh(cons->sht, cons->cur_x, cons->cur_y, cons->cur_x + 8, cons->cur_y + 16);
+						cons->cur_x = 16;
+						cons->cur_y = 28;
+					}
+					if(dat.data == 6){
+						printlog("window resize!");
+						reg[7] = 1;
+						return 0;
 					}
 				}else if(dat.tag == TAG_KEYBOARD){
 					reg[7] = dat.data;
@@ -663,7 +682,7 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 	/* fwrite */
 	if(edx == 29);
 	if(edx == 30){
-		char tbuf[8];
+		char tbuf[7];
 		tbuf[0] = lt.y0;
 		tbuf[1] = lt.y1;
 		tbuf[2] = lt.month;
@@ -671,9 +690,17 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 		tbuf[4] = lt.hour;
 		tbuf[5] = lt.min;
 		tbuf[6] = lt.sec;
-		tbuf[7] = lt.dayofweek;
 		for(i = 0; i < 7; i++){
 			*((char *)ebx + ds_base + i) = tbuf[i];
+		}
+	}
+	if(edx == 31){
+		sht = (struct SHEET *)ebx;
+		printlog("%d %d\n", sht->bxsize, sht->bysize);
+		if(eax == 0){
+			char *r = (char *)(esi + ds_base);
+			r[0] = (short)sht->bxsize;
+			r[2] = (short)sht->bysize;
 		}
 	}
 

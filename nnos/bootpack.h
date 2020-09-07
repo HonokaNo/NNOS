@@ -201,7 +201,8 @@ struct SHEET
 	int mix, miy, wx, wy;
 	struct SHTCTL *ctl;
 	struct TASK *task;
-	char bs;
+	/* bs:最大化しているか resize:最大化できるようにするか */
+	char bs, resize;
 };
 
 struct SHTCTL
@@ -214,6 +215,9 @@ struct SHTCTL
 
 struct SHTCTL *shtctl_init(struct MEMMAN *memman, unsigned char *vram, int xsize, int ysize);
 struct SHEET *sheet_alloc(struct SHTCTL *ctl);
+/* ウィンドウサイズ変更時使用 最大化していないときのサイズを保存しない */
+void sheet_resetbuf(struct SHEET *sht, unsigned char *buf, int xsize, int ysize);
+/* 最初にウィンドウを作成するとき使用 最大化していないときのサイズを保存 */
 void sheet_setbuf(struct SHEET *sht, unsigned char *buf, int xsize, int ysize);
 void sheet_updown(struct SHEET *sht, int height);
 void sheet_refresh(struct SHEET *sht, int bx0, int by0, int bx1, int by1);
@@ -356,8 +360,8 @@ void file_readfat(int *fat, unsigned char *img);
 struct FILEINFO *file_search(char *name, struct FILEINFO *finfo, int max);
 char *file_loadfile2(int clustno, int *psize, int *fat);
 
-void make_wtitle(struct SHEET *sht, char *title, char act, char bs);
-void make_window(struct SHEET *sht, char *title, char act, char bs);
+void make_wtitle(struct SHEET *sht, char *title, char act, char bs, char resize);
+void make_window(struct SHEET *sht, char *title, char act, char bs, char resize);
 void putfontstr_sht(struct SHEET *sht, int x, int y, struct color c, struct color bc, char *s);
 void putfontstr_sht_ref(struct SHEET *sht, int x, int y, struct color c, struct color bc, char *s);
 void make_textbox(struct SHEET *sht, int x0, int y0, int sx, int sy, struct color c);

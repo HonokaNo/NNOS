@@ -10,7 +10,7 @@ void HariMain(void)
 
 	api_initmalloc();
 	buf = api_malloc(160 * 100 * 4);
-	win = api_openwin(buf, 160, 100, "walk");
+	win = api_openwin(buf, 160, 100, "walk", 0);
 	api_boxfilwin(win, 4, 24, 155, 95, &black);
 	x = 76;
 	y = 56;

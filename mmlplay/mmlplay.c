@@ -37,7 +37,7 @@ file_error:
 	if(i == 0) end(0);
 
 	/* ウィンドウの準備 */
-	win = api_openwin(winbuf, 256, 112, "mmlplay");
+	win = api_openwin(winbuf, 256, 112, "mmlplay", 0);
 	api_putstrwin(win, 128, 32, &black, p);
 	api_boxfilwin(win, 8, 60, 247,  76, &white);
 	api_boxfilwin(win, 6, 86, 249, 105, &white);

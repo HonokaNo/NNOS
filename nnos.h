@@ -12,14 +12,18 @@ struct time
 	unsigned char y0, y1;
 	unsigned char month, day;
 	unsigned char hour, min, sec;
-	unsigned char dayofweek;
+};
+
+struct ret
+{
+	short v0, v1;
 };
 
 void api_putchar(int c);
 void api_putstr0(char *s);
 void api_putstr1(char *s, int len);
 void api_end(void);
-int api_openwin(char *buf, int xsize, int ysize, char *title);
+int api_openwin(char *buf, int xsize, int ysize, char *title, char resize);
 void api_putstrwin(int win, int x, int y, struct color *c, char *str);
 void api_boxfilwin(int win, int x0, int y0, int x1, int y1, struct color *c);
 void api_initmalloc(void);
@@ -53,7 +57,7 @@ int api_cmdline(char *buf, int maxsize);
 #define LANGMODE_EUC		2
 
 int api_getlang(void);
-
 void api_getclock(struct time *time);
+void api_getwindata(int win, int mode, struct ret *ret);
 
 #endif

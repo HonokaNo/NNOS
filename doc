@@ -42,6 +42,7 @@ API list:
 		esi:window width
 		edi:window height
 		ecx:window title pointer
+		eax:resize flag
 
 		return:
 
@@ -128,6 +129,7 @@ API list:
 		return:
 
 		eax:keydata mode=0かつデータがなければ-1
+		memo:最大化された場合1が戻ってきます
 
 	16.alloc timer
 		edx:16
@@ -181,7 +183,7 @@ API list:
 
 	25.get file size
 		edx:25
-		ecx:mode 0=get fsize 1=get pos 2=end - pos
+		ecx:mode 0=get fsize 1=get pos 2=fsize - pos
 
 		return:
 
@@ -213,10 +215,12 @@ API list:
 
 	30:get time
 		edx:30
+		ebx:time struct
 
-		return:
-
-		eax:time struct
+	31:get window data
+		edx:31
+		eax:mode 0=window size
+		ecx:return struct
 
 (warn1):
 	(warn1)がついている関数では描画ごとにrefreshされます。

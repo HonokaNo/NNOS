@@ -7,7 +7,7 @@
 
 [SECTION .text]
 
-_api_openwin:		; int api_openwin(char *buf, int xsize, int ysize, char *title);
+_api_openwin:		; int api_openwin(char *buf, int xsize, int ysize, char *title, char resize);
 		push	edi
 		push	esi
 		push	ebx
@@ -16,6 +16,7 @@ _api_openwin:		; int api_openwin(char *buf, int xsize, int ysize, char *title);
 		mov		esi,[esp+20]
 		mov		edi,[esp+24]
 		mov		ecx,[esp+28]
+		mov		eax,[esp+32]
 		int		0x40
 		pop		ebx
 		pop		esi

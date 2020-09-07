@@ -27,7 +27,7 @@ void HariMain(void)
 	};
 	struct color black = {0x00, 0x00, 0x00, 0xff};
 
-	win = api_openwin(buf, 216, 237, "bball");
+	win = api_openwin(buf, 216, 237, "bball", 0);
 	api_boxfilwin(win, 8, 29, 207, 228, &black);
 
 	for(i = 0; i <= 14; i++){

@@ -49,7 +49,7 @@ err:
 	if(q == 0) goto err;
 
 	/* ウィンドウを開く */
-	win = api_openwin(winbuf, w * 8 + 16, h * 16 + 37, "tview");
+	win = api_openwin(winbuf, w * 8 + 16, h * 16 + 37, "tview", 0);
 	api_boxfilwin(win, 6, 27, w * 8 + 9, h * 16 + 30, &white);
 
 	/* ファイル読み込み */

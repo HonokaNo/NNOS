@@ -12,7 +12,7 @@ void HariMain(void)
 	int win;
 	struct time time;
 
-	win = api_openwin(buf, 150, 66, "calendar");
+	win = api_openwin(buf, 150, 66, "calendar", 0);
 	api_getclock(&time);
 
 	sprintf(s, " %02d%02d %02d/%02d", time.y0, time.y1, time.month, time.day);

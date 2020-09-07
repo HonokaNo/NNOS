@@ -19,7 +19,7 @@ void HariMain(void)
 
 	api_initmalloc();
 	buf = api_malloc(160 * 100 * 4);
-	win = api_openwin(buf, 160, 100, "lines");
+	win = api_openwin(buf, 160, 100, "lines", 0);
 
 	for(i = 0; i < 8; i++){
 		c = colors[i];

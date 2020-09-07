@@ -11,7 +11,7 @@ void HariMain(void)
 
 	api_initmalloc();
 	buf = api_malloc(150 * 100 * 4);
-	win = api_openwin(buf, 150, 100, "stars");
+	win = api_openwin(buf, 150, 100, "stars", 0);
 	api_boxfilwin(win,  6, 26, 143, 93, &black);
 
 	for(i = 0; i < 50; i++){

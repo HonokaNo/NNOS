@@ -53,7 +53,7 @@ void HariMain(void)
 
 	xsize = info[2] + 16;
 	if(xsize < 136) xsize = 136;
-	win = api_openwin(winbuf, xsize, info[3] + 37, "gview");
+	win = api_openwin(winbuf, xsize, info[3] + 37, "gview", 0);
 
 	if(info[0] == 1) i = decode0_BMP(&env, fsize, filebuf, 4, (char *)picbuf, 0);
 	else i = decode0_JPEG(&env, fsize, filebuf, 4, (char *)picbuf, 0);

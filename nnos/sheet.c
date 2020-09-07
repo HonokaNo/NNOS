@@ -46,11 +46,18 @@ struct SHEET *sheet_alloc(struct SHTCTL *ctl)
 	return 0;
 }
 
-void sheet_setbuf(struct SHEET *sht, unsigned char *buf, int xsize, int ysize)
+void sheet_resetbuf(struct SHEET *sht, unsigned char *buf, int xsize, int ysize)
 {
 	sht->buf = buf;
 	sht->bxsize = xsize;
 	sht->bysize = ysize;
+
+	return;
+}
+
+void sheet_setbuf(struct SHEET *sht, unsigned char *buf, int xsize, int ysize)
+{
+	sheet_resetbuf(sht, buf, xsize, ysize);
 	/* Šg‘åŒãƒTƒCƒY‚ð–ß‚¹‚é‚æ‚¤‚É•Û‘¶ */
 	sht->mix = xsize;
 	sht->miy = ysize;

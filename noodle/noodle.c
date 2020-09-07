@@ -11,7 +11,7 @@ void HariMain(void)
 
 	api_initmalloc();
 	buf = api_malloc(150 * 50 * 4);
-	win = api_openwin(buf, 150, 50, "noodle");
+	win = api_openwin(buf, 150, 50, "noodle", 0);
 
 	sprintf(s, "%5d:%02d:%02d", hour, min, sec);
 	api_boxfilwin(win, 28, 27, 115, 41, &white);
