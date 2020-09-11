@@ -9,10 +9,12 @@
 
 _api_getwindata:	; void api_getwindata(int win, int mode, struct ret *ret);
 		push	ebx
+		push	esi
 		mov		edx,31
-		mov		ebx,[esp+8]
-		mov		eax,[esp+12]
-		mov		esi,[esp+16]
+		mov		ebx,[esp+12]
+		mov		eax,[esp+16]
+		mov		esi,[esp+20]
 		int		0x40
+		pop		esi
 		pop		ebx
 		ret

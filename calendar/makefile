@@ -1,5 +1,5 @@
 APP    = calendar
-STACK  = 39k
+STACK  = 50k
 MALLOC = 0k
 
 include ../app_make.txt

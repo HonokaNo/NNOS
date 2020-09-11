@@ -32,9 +32,6 @@ struct localtime readrtc()
 		lt.hour = k;
 		if(lt.hour > 12) lt.sec = 0xff;
 
-		i = readcmos(0x06);
-		lt.dayofweek = i;
-
 		/* “ú‚ðŽæ“¾ */
 		i = readcmos(0x07);
 		k = (i >> 4) * 10 + (i & 0x0f);

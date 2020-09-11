@@ -1,4 +1,4 @@
-//#include <stdio.h>
+#include <stdio.h>
 #include "d_stdio.h"
 #include "nnos.h"
 

@@ -128,6 +128,7 @@ void HariMain(void)
 	buf_back = (unsigned char *)memman_alloc_4k(memman, binfo->scrnx * binfo->scrny * 4);
 	sheet_setbuf(sht_back, buf_back, binfo->scrnx, binfo->scrny);
 	init_screen(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), binfo->scrnx, binfo->scrny, back);
+	sht_back->resize = 1;
 
 	if(!DEBUG){
 		finfo = file_search("backg.ima", (struct FILEINFO *)(ADR_DISKIMG + 0x2600), 224);
@@ -182,19 +183,15 @@ void HariMain(void)
 		sheet_slide(sht_back,    0,   0);
 		sheet_slide(key_win,   400,  10);
 		sheet_slide(sht_mouse,  mx,  my);
-
-		sheet_updown(sht_back,  0);
-		sheet_updown(key_win,   1);
-		sheet_updown(sht_mouse, 2);
 	}else{
 		sheet_slide(sht_back,   0,  0);
 		sheet_slide(key_win,   56,  6);
 		sheet_slide(sht_mouse, mx, my);
-
-		sheet_updown(sht_back,  0);
-		sheet_updown(key_win,   1);
-		sheet_updown(sht_mouse, 2);
 	}
+
+	sheet_updown(sht_back,  0);
+	sheet_updown(key_win,   1);
+	sheet_updown(sht_mouse, 2);
 
 	keywin_on(key_win);
 
@@ -428,29 +425,21 @@ void HariMain(void)
 
 														sheet_slide(sht, 0, 0);
 
+														sheet_refreshsub(sht_back->ctl, 0, 0, binfo->scrnx, binfo->scrny, 0, sht_back->ctl->top);
+
 														/* コンソール */
 														if((sht->flags & 0x10) == 0){
 															make_textbox(sht, 8, 28, sht->bxsize - 16, sht->bysize - 35, black);
 															putfontstr_sht(sht, 8, 28, white, black, ">");
 														}
 
-														sheet_refreshsub(sht_back->ctl, 0, 0, binfo->scrnx, binfo->scrny, 0, sht_back->ctl->top);
 														sht->bs = 1;
-
-														keywin_off(key_win);
-														key_win = sht;
-														keywin_on(key_win);
 
 														io_cli();
 														/* コンソールとアプリを区別できるように */
-														if((sht->flags & 0x10) == 0){
-															buffer_put(&key_win->task->buf, 0, 5);
-														}else{
-															buffer_put(&key_win->task->buf, 0, 6);
-														}
+														if((sht->flags & 0x10) == 0) buffer_put(&sht->task->buf, 0, 5);
+														else buffer_put(&sht->task->buf, 0, 6);
 														io_sti();
-
-														task_run(key_win->task, -1, 0);
 													}
 												}else{
 													/* サイズ戻すボタン */
@@ -481,20 +470,11 @@ void HariMain(void)
 
 														sht->bs = 0;
 
-														keywin_off(key_win);
-														key_win = sht;
-														keywin_on(key_win);
-
 														io_cli();
 														/* コンソールとアプリを区別できるように */
-														if((sht->flags & 0x10) == 0){
-															buffer_put(&key_win->task->buf, 0, 5);
-														}else{
-															buffer_put(&key_win->task->buf, 0, 6);
-														}
+														if((sht->flags & 0x10) == 0) buffer_put(&sht->task->buf, 0, 5);
+														else buffer_put(&sht->task->buf, 0, 6);
 														io_sti();
-
-														task_run(key_win->task, -1, 0);
 													}
 												}
 											}

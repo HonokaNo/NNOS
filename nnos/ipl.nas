@@ -1,4 +1,4 @@
-CYLS	equ		35
+CYLS	equ		24
 
 		org		0x7c00
 
@@ -33,38 +33,10 @@ entry:
 		mov		es,ax
 		mov		cx,0x0002
 		mov		dh,0
-readloop:
-		mov		si,0
-retry:
-		mov		ax,0x0201
-		mov		bx,0
-		mov		dl,0x00
-		int		0x13
-		jnc		next
-		inc		si
-		cmp		si,3
-		jae		error
-		mov		ah,0x00
-		mov		dl,0x00
-		int		0x13
-		jmp		retry
-next:
-		mov		ax,es
-		add		ax,0x0020
-		mov		es,ax
-		inc		cl
-		cmp		cl,18
-		jbe		readloop
-		mov		cl,1
-		inc		dh
-		cmp		dh,2
-		jb		readloop
-		mov		dh,0
-		inc		ch
-		cmp		ch,CYLS
-		jb		readloop
+		mov		bx,18*2*CYLS-1
+		call	readfast
 
-		mov		[0x0ff0],ch
+		mov		byte [0x0ff0],CYLS
 		jmp		0xc200
 
 error:
@@ -90,6 +62,77 @@ msg:
 		db		"load error"
 		db		0x0a
 		db		0
+
+readfast:
+		mov		ax,es
+		shl		ax,3
+		and		ah,0x7f
+		mov		al,128
+		sub		al,ah
+
+		mov		ah,bl
+		cmp		bh,0
+		je		.skip1
+		mov		ah,18
+.skip1:
+		cmp		al,ah
+		jbe		.skip2
+		mov		al,ah
+.skip2:
+		mov		ah,19
+		sub		ah,cl
+		cmp		al,ah
+		jbe		.skip3
+		mov		al,ah
+.skip3:
+		push	bx
+		mov		si,0
+retry:
+		mov		ah,0x02
+		mov		bx,0
+		mov		dl,0x00
+		push	es
+		push	dx
+		push	cx
+		push	ax
+		int		0x13
+		jnc		next
+		inc		si
+		cmp		si,5
+		jae		error
+		mov		ah,0x00
+		mov		dl,0x00
+		int		0x13
+		pop		ax
+		pop		cx
+		pop		dx
+		pop		es
+		jmp		retry
+next:
+		pop		ax
+		pop		cx
+		pop		dx
+		pop		bx
+		shr		bx,5
+		mov		ah,0
+		add		bx,ax
+		shl		bx,5
+		mov		es,bx
+		pop		bx
+		sub		bx,ax
+		jz		.ret
+		add		cl,al
+		cmp		cl,18
+		jbe		readfast
+		mov		cl,1
+		inc		dh
+		cmp		dh,2
+		jb		readfast
+		mov		dh,0
+		inc		ch
+		jmp		readfast
+.ret
+		ret
 
 		resb	0x7dfe-$		; 0x7dfe‚Ü‚Å‚ð0x00‚Å–„‚ß‚é–½—ß
 

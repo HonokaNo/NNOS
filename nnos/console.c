@@ -466,6 +466,7 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 	int *reg = &eax + 1;
 		/* reg[0] : EDI reg[1] : ESI reg[2] : EBP reg[3] : ESP */
 		/* reg[4] ; EBX reg[5] : EDX reg[6] : ECX reg[7] : EAX */
+	char s[20];
 
 	if(edx == 1) cons_putchar(cons, eax & 0xff, 1);
 	if(edx == 2) cons_putstr0(cons, (char *)ebx + ds_base);
@@ -568,7 +569,6 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 						cons->cur_y = 28;
 					}
 					if(dat.data == 6){
-						printlog("window resize!");
 						reg[7] = 1;
 						return 0;
 					}
@@ -682,25 +682,21 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 	/* fwrite */
 	if(edx == 29);
 	if(edx == 30){
-		char tbuf[7];
-		tbuf[0] = lt.y0;
-		tbuf[1] = lt.y1;
-		tbuf[2] = lt.month;
-		tbuf[3] = lt.day;
-		tbuf[4] = lt.hour;
-		tbuf[5] = lt.min;
-		tbuf[6] = lt.sec;
-		for(i = 0; i < 7; i++){
-			*((char *)ebx + ds_base + i) = tbuf[i];
-		}
+		struct localtime *time = (struct localtime *)(ebx + ds_base);
+		time->y0 = lt.y0;
+		time->y1 = lt.y1;
+		time->month = lt.month;
+		time->day = lt.day;
+		time->hour = lt.hour;
+		time->min = lt.min;
+		time->sec = lt.sec;
 	}
 	if(edx == 31){
 		sht = (struct SHEET *)ebx;
-		printlog("%d %d\n", sht->bxsize, sht->bysize);
 		if(eax == 0){
-			char *r = (char *)(esi + ds_base);
-			r[0] = (short)sht->bxsize;
-			r[2] = (short)sht->bysize;
+			struct ret *r = (struct ret *)(esi + ds_base);
+			r->v0 = (short)sht->bxsize;
+			r->v1 = (short)sht->bysize;
 		}
 	}
 

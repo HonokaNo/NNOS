@@ -143,7 +143,7 @@ _start_app:		; void start_app(int eip, int cs, int esp, int ds, int *tss_esp0);
 		mov		edx,[esp+44]
 		mov		ebx,[esp+48]
 		mov		ebp,[esp+52]
-		mov		[ebp+0],esp
+		mov		[ebp],esp
 		mov		[ebp+4],ss
 		mov		es,bx
 		mov		ds,bx
