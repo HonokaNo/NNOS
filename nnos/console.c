@@ -365,7 +365,7 @@ int cmd_app(struct CONSOLE *cons, char *cmdline)
 	struct TASK *task = task_now();
 	struct SHTCTL *shtctl;
 	struct SHEET *sht;
-	char name[18], *p, *q;
+	char name[18], *p, *q, s[20];
 	int i, segsiz, datsiz, esp, dathrb, appsiz;
 
 	for(i = 0; i < 13; i++){
@@ -395,6 +395,10 @@ int cmd_app(struct CONSOLE *cons, char *cmdline)
 			esp    = *((int *)(p + 0x000c));
 			datsiz = *((int *)(p + 0x0010));
 			dathrb = *((int *)(p + 0x0014));
+			sprintf(s, "ESP=%d\n", esp);
+			cons_putstr0(cons, s);
+			sprintf(s, "SEG=%d\n", segsiz);
+			cons_putstr0(cons, s);
 
 			q = (char *)memman_alloc_4k(memman, segsiz);
 			if(q == 0){
@@ -466,7 +470,6 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 	int *reg = &eax + 1;
 		/* reg[0] : EDI reg[1] : ESI reg[2] : EBP reg[3] : ESP */
 		/* reg[4] ; EBX reg[5] : EDX reg[6] : ECX reg[7] : EAX */
-	char s[20];
 
 	if(edx == 1) cons_putchar(cons, eax & 0xff, 1);
 	if(edx == 2) cons_putstr0(cons, (char *)ebx + ds_base);

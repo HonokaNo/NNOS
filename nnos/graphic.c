@@ -327,12 +327,18 @@ void putPixel8(char *vram, int scline, int x, int y, struct color c)
 
 void putPixel16(char *vram, int scline, int x, int y, struct color c)
 {
-	unsigned char r = c.r & 0x1f, g = c.g & 0x3f, b = c.b & 0x1f;
-	short data = ((b << 0) | (g << 5) | (r << 11));
+	short *p = &vram[y * scline + x * 16 / 8];
+//	unsigned char r = c.r >> 3, g = c.g >> 2, b = c.b >> 3;
+//	short data = ((b << 0) | (g << 5) | (r << 11));
+	short r = ((c.r >> 3) << 11) & 0xf800;
+	short g = ((c.g >> 2) << 5) & 0x07e0;
+	short b = (c.b >> 3) & 0x001f;
+	short data = (r | g | b);
 	char d1 = data & 0xff, d2 = (data >> 8) & 0xff;
 
-	vram[y * scline + x * 16 / 8 + 0] = d1;
-	vram[y * scline + x * 16 / 8 + 1] = d2;
+//	vram[y * scline + x * 16 / 8 + 0] = d1;
+//	vram[y * scline + x * 16 / 8 + 1] = d2;
+	p[0] = data;
 }
 
 void putPixel24(char *vram, int scline, int x, int y, struct color c)
@@ -344,10 +350,9 @@ void putPixel24(char *vram, int scline, int x, int y, struct color c)
 
 void putPixel32(char *vram, int scline, int x, int y, struct color c)
 {
-	vram[y * scline + x * 32 / 8 + 0] = c.b;
-	vram[y * scline + x * 32 / 8 + 1] = c.g;
-	vram[y * scline + x * 32 / 8 + 2] = c.r;
-	vram[y * scline + x * 32 / 8 + 3] = c.alpha;
+	int *p = (int *)&vram[y * scline + x * 32 / 8];
+	int col = (c.alpha << 24) | (c.r << 16) | (c.g << 8) | (c.b << 0);
+	p[0] = col;
 }
 
 void putPixel(char vmode, char *vram, int scline, int x, int y, struct color c)

@@ -34,6 +34,7 @@ void HariMain(void)
 	struct color back, c;
 
 	struct BOOTINFO *binfo = (struct BOOTINFO *)ADR_BOOTINFO;
+
 	char s[35];
 	unsigned int memtotal;
 	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;;
@@ -89,6 +90,8 @@ void HariMain(void)
 
 	io_sti();
 
+//	printlog("5 ACPI=%08X", binfo->acpi);
+
 	/* Š„‚è‚İ—LŒø‰» 11111000 */
 	io_out8(PIC0_IMR, 0xf8);
 	/* Š„‚è‚İ—LŒø‰» 11101110 */
@@ -104,7 +107,7 @@ void HariMain(void)
 	/* ƒƒ‚ƒŠ—Êæ“¾ */
 	memtotal = memtest(ADR_BOTPAK, 0xffffffff);
 	memman_init(memman);
-	memman_free(memman, 0x00001000, 0x0009e000);
+	memman_free(memman, 0x00001010, 0x0009e000);
 	memman_free(memman, 0x00400000, memtotal - 0x00400000);
 
 	fat = (int *)memman_alloc_4k(memman, 2880 * 4);
@@ -194,6 +197,13 @@ void HariMain(void)
 	sheet_updown(sht_mouse, 2);
 
 	keywin_on(key_win);
+
+	if(DEBUG){
+		short f0 = (binfo->acpi) & 0xffff, f1 = (binfo->acpi << 16) & 0xffff;
+		binfo->acpi = (f0 << 16) | f1;
+		sprintf(s, "ACPI=%08X", binfo->acpi);
+		putfontstr_sht(sht_back, 400, 400, white, back, s);
+	}
 
 	/* ‰æ–Ê‰Šú‰» */
 	if(DEBUG){

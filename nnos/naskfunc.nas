@@ -18,6 +18,7 @@
 		GLOBAL	_asm_hrb_api
 		GLOBAL	_asm_end_app
 		GLOBAL	_clts, _fnsave, _frstor
+		GLOBAL	_get_acpimem
 
 		EXTERN	_hrb_api
 
@@ -155,6 +156,7 @@ _start_app:		; void start_app(int eip, int cs, int esp, int ds, int *tss_esp0);
 		push	edx
 		push	ecx
 		push	eax
+		xchg	bx,bx
 		retf
 
 _asm_hrb_api:

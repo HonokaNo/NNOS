@@ -7,7 +7,7 @@
 ;   0x115  800x 600 8:8:8 color
 ;   0x118 1024x 768 8:8:8 color
 ;   0x11b 1280x1024 8:8:8 color
-VIDEOMODE	equ		0x118
+VIDEOMODE	equ		0x117
 
 BOTPAK	equ		0x00280000
 DSKCAC	equ		0x00100000
@@ -20,6 +20,7 @@ SCRNX	equ		0x0ff4
 SCRNY	equ		0x0ff6
 VRAM	equ		0x0ff8
 SCLINE	equ		0x0ffc
+ACPI	equ		0x0ffe
 
 		org		0xc200
 
@@ -97,6 +98,33 @@ keystatus:
 
 		cli
 
+; get ACPI mem
+		mov		dword [ACPI],0x00000000
+		mov		ebx,0
+		mov		ax,memdata >> 4
+		mov		es,ax
+reload:
+		mov		ecx,20
+		mov		eax,0xe820
+		mov		di,0
+		mov		edx,"PAMS"
+; get System memory map
+		int		0x15
+; error! end
+		jc		end_acpi_mem
+		cmp		eax,"PAMS"
+		jne		end_acpi_mem
+		mov		eax,[memdata.type]
+		cmp		eax,3
+		je		set_acpi_address
+		cmp		ebx,0
+		jne		reload
+		jmp		end_acpi_mem
+set_acpi_address:
+		mov		eax,[memdata.base]
+		mov		[ACPI],eax
+end_acpi_mem:
+
 ; set GDT
 		lgdt	[GDTR0]
 		mov		eax,cr0
@@ -144,6 +172,7 @@ pipelineflush:
 		call	memcpy
 skip:
 		mov		esp,[ebx+12]
+
 		jmp		dword 2*8:0x0000001b
 
 waitkbdout:
@@ -163,6 +192,18 @@ memcpy:
 		ret
 
 		alignb	16
+
+memdata:
+.base:
+		resb	4		; base0
+.base1:
+		resb	4		; base1
+.size:
+		resb	4		; length0
+.size1:
+		resb	4		; length1
+.type
+		resb	4		; type
 
 GDT0:
 		resb	8

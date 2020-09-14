@@ -49,6 +49,10 @@ int *inthandler0c(int *esp)
 	cons_putstr0(cons, "\nINT 0c :\n Stack Exception.\n");
 	sprintf(s, "EIP = %08X\n", esp[11]);
 	cons_putstr0(cons, s);
+	sprintf(s, "ESP = %04X\n", esp[14]);
+	cons_putstr0(cons, s);
+	sprintf(s, "SS = %04X\n", esp[15]);
+	cons_putstr0(cons, s);
 	return &(task->tss.esp0);
 }
 

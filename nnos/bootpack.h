@@ -42,6 +42,7 @@ struct BOOTINFO
 	short scrnx, scrny;
 	char *vram;
 	short scline;
+	unsigned int acpi;
 };
 
 void printlog(char *format, ...);

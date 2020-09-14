@@ -10,19 +10,18 @@ void HariMain(void)
 	char *array[7] = {"Sun.", "Mon.", "Tue.", "Wed.", "Thu.", "Fri.", "Sat."};
 
 	char buf[150 * 66 * 4], s[30];
-	int win, year, y0, y1, month, day;
+	int win, y0, y1, month, day;
 	struct time time;
 
 	win = api_openwin(buf, 150, 66, "calendar", 0);
 	api_getclock(&time);
 
-	year = (time.y0 * 100 + time.y1);
 	y0 = time.y0;
 	y1 = time.y1;
 	month = time.month;
 	day = time.day;
 
-	sprintf(s, " %04d %02d/%02d", year, month, time.day);
+	sprintf(s, " %02d%02d %02d/%02d", y0, y1, month, day);
 	api_putstrwin(win, 28, 27, &black, s);
 
 	if(month < 3){

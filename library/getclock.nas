@@ -11,3 +11,4 @@ _api_getclock:			; void *api_getclock(struct time *time);
 		mov		edx,30
 		mov		ebx,[esp+4]
 		int		0x40
+		ret
