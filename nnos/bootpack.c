@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <string.h>
 #include "bootpack.h"
 
 struct BUFFER buffer;
@@ -7,22 +6,7 @@ struct localtime lt;
 
 #define KEYCMD_LED	0xed
 
-void keywin_off(struct SHEET *key_win);
-void keywin_on(struct SHEET *key_win);
-void close_constask(struct TASK *task);
-void close_console(struct SHEET *sht);
-
-struct rgb
-{
-	unsigned char b, g, r, t;
-};
-
-int info_JPEG(struct DLL_STRPICENV *env, int *info, int size, char *fp);
-int decode0_JPEG(struct DLL_STRPICENV *env, int size, char *fp, int b_type, char *buf, int skip);
-int info_BMP(struct DLL_STRPICENV *env, int *info, int size, char *fp);
-int decode0_BMP(struct DLL_STRPICENV *env, int size, char *fp, int b_type, char *buf, int skip);
-
-#define DEBUG 0
+#define DEBUG 1
 
 void HariMain(void)
 {
@@ -89,8 +73,6 @@ void HariMain(void)
 	io_out8(0x71, prev);
 
 	io_sti();
-
-//	printlog("5 ACPI=%08X", binfo->acpi);
 
 	/* 割り込み有効化 11111000 */
 	io_out8(PIC0_IMR, 0xf8);
@@ -198,9 +180,10 @@ void HariMain(void)
 
 	keywin_on(key_win);
 
+	/* ACPIアドレスがうまく取れていないので変換する */
+	short f0 = (binfo->acpi) & 0xffff, f1 = (binfo->acpi << 16) & 0xffff;
+	binfo->acpi = (f0 << 16) | f1;
 	if(DEBUG){
-		short f0 = (binfo->acpi) & 0xffff, f1 = (binfo->acpi << 16) & 0xffff;
-		binfo->acpi = (f0 << 16) | f1;
 		sprintf(s, "ACPI=%08X", binfo->acpi);
 		putfontstr_sht(sht_back, 400, 400, white, back, s);
 	}
@@ -402,11 +385,17 @@ void HariMain(void)
 
 					if((mdec.btn & 0x01) != 0){
 						if(mmx < 0){
-							for(j = shtctl->top - 1; j > 0; j--){
+							for(j = shtctl->top - 1; j >= 0; j--){
 								sht = shtctl->sheets[j];
 								x = mx - sht->vx0;
 								y = my - sht->vy0;
-								if(0 <= x && x < sht->bxsize && 0 <= y && y < sht->bysize){
+								if(sht == sht_back){
+									if(2 <= x && x <= 60 && binfo->scrny - 24 <= y && y <= binfo->scrny - 3){
+										printlog("os hlt\n");
+										/* 電断処理 */
+										acpi_hlt(binfo);
+									}
+								}else if(0 <= x && x < sht->bxsize && 0 <= y && y < sht->bysize){
 									c = getColorWin(sht, x, y);
 									if(c.alpha != 0x00){
 										sheet_updown(sht, shtctl->top - 1);
@@ -535,81 +524,4 @@ void HariMain(void)
 			}
 		}
 	}
-}
-
-void keywin_off(struct SHEET *key_win)
-{
-	change_wtitle(key_win, 0);
-	if((key_win->flags & 0x20) != 0){
-		buffer_put(&key_win->task->buf, 0, 3);
-	}
-	return;
-}
-
-void keywin_on(struct SHEET *key_win)
-{
-	change_wtitle(key_win, 1);
-	if((key_win->flags & 0x20) != 0){
-		buffer_put(&key_win->task->buf, 0, 2);
-	}
-	return;
-}
-
-struct TASK *open_constask(struct SHEET *sht, unsigned int memtotal, int *fat)
-{
-	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
-	struct TASK *task = task_alloc();
-
-	task->cons_stack = memman_alloc_4k(memman, 64 * 1024);
-	task->tss.esp = task->cons_stack + 64 * 1024 - 12;
-	task->tss.eip = (int)&console_task;
-	task->tss.es = 1 * 8;
-	task->tss.cs = 2 * 8;
-	task->tss.ss = 1 * 8;
-	task->tss.ds = 1 * 8;
-	task->tss.fs = 1 * 8;
-	task->tss.gs = 1 * 8;
-	*((int *)(task->tss.esp + 4)) = (int)sht;
-	*((int *)(task->tss.esp + 8)) = memtotal;
-	task_run(task, 2, 2);
-	buffer_init(&task->buf, 128, task);
-	task->fat = fat;
-
-	return task;
-}
-
-struct SHEET *open_console(struct SHTCTL *shtctl, unsigned int memtotal, int *fat)
-{
-	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
-	struct SHEET *sht = sheet_alloc(shtctl);
-	unsigned char *buf = (unsigned char *)memman_alloc_4k(memman, 256 * 165 * 4);
-	struct color black = {0x00, 0x00, 0x00, 0xff};
-
-	sheet_setbuf(sht, buf, 256, 165);
-	make_window(sht, "console", 0, 0, 1);
-	make_textbox(sht, 8, 28, 240, 128, black);
-	sht->task = open_constask(sht, memtotal, fat);
-	sht->flags |= 0x20;
-
-	return sht;
-}
-
-void close_constask(struct TASK *task)
-{
-	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
-	task_sleep(task);
-	memman_free_4k(memman, task->cons_stack, 64 * 1024);
-	memman_free_4k(memman, (int)task->buf.buf, 128 * 4);
-	task->flags = 0;
-	return;
-}
-
-void close_console(struct SHEET *sht)
-{
-	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
-	struct TASK *task = sht->task;
-	memman_free_4k(memman, (int)sht->buf, 256 * 165 * 4);
-	sheet_free(sht);
-	close_constask(task);
-	return;
 }

@@ -6,6 +6,7 @@
 
 		GLOBAL	_io_hlt, _io_cli, _io_sti, _io_stihlt
 		GLOBAL	_io_in8, _io_out8
+		GLOBAL	_io_out16
 		GLOBAL	_io_load_eflags, _io_store_eflags
 		GLOBAL	_load_gdtr, _load_idtr
 		GLOBAL	_load_cr0, _store_cr0
@@ -18,7 +19,7 @@
 		GLOBAL	_asm_hrb_api
 		GLOBAL	_asm_end_app
 		GLOBAL	_clts, _fnsave, _frstor
-		GLOBAL	_get_acpimem
+		GLOBAL	_acpi_hlt
 
 		EXTERN	_hrb_api
 
@@ -51,6 +52,12 @@ _io_out8:	; void io_out8(int port, int data);
 		mov		edx,[esp+4]
 		mov		al,[esp+8]
 		out		dx,al
+		ret
+
+_io_out16:
+		mov		edx,[esp+4]
+		mov		ax,[esp+8]
+		out		dx,ax
 		ret
 
 _io_load_eflags:	; int io_load_eflags(void);

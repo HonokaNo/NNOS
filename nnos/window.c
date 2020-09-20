@@ -232,3 +232,80 @@ void change_wtitle(struct SHEET *sht, char act)
 	sheet_refresh(sht, 3, 3, xsize, 21);
 	return;
 }
+
+void keywin_off(struct SHEET *key_win)
+{
+	change_wtitle(key_win, 0);
+	if((key_win->flags & 0x20) != 0){
+		buffer_put(&key_win->task->buf, 0, 3);
+	}
+	return;
+}
+
+void keywin_on(struct SHEET *key_win)
+{
+	change_wtitle(key_win, 1);
+	if((key_win->flags & 0x20) != 0){
+		buffer_put(&key_win->task->buf, 0, 2);
+	}
+	return;
+}
+
+struct TASK *open_constask(struct SHEET *sht, unsigned int memtotal, int *fat)
+{
+	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
+	struct TASK *task = task_alloc();
+
+	task->cons_stack = memman_alloc_4k(memman, 64 * 1024);
+	task->tss.esp = task->cons_stack + 64 * 1024 - 12;
+	task->tss.eip = (int)&console_task;
+	task->tss.es = 1 * 8;
+	task->tss.cs = 2 * 8;
+	task->tss.ss = 1 * 8;
+	task->tss.ds = 1 * 8;
+	task->tss.fs = 1 * 8;
+	task->tss.gs = 1 * 8;
+	*((int *)(task->tss.esp + 4)) = (int)sht;
+	*((int *)(task->tss.esp + 8)) = memtotal;
+	task_run(task, 2, 2);
+	buffer_init(&task->buf, 128, task);
+	task->fat = fat;
+
+	return task;
+}
+
+struct SHEET *open_console(struct SHTCTL *shtctl, unsigned int memtotal, int *fat)
+{
+	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
+	struct SHEET *sht = sheet_alloc(shtctl);
+	unsigned char *buf = (unsigned char *)memman_alloc_4k(memman, 256 * 165 * 4);
+	struct color black = {0x00, 0x00, 0x00, 0xff};
+
+	sheet_setbuf(sht, buf, 256, 165);
+	make_window(sht, "console", 0, 0, 1);
+	make_textbox(sht, 8, 28, 240, 128, black);
+	sht->task = open_constask(sht, memtotal, fat);
+	sht->flags |= 0x20;
+
+	return sht;
+}
+
+void close_constask(struct TASK *task)
+{
+	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
+	task_sleep(task);
+	memman_free_4k(memman, task->cons_stack, 64 * 1024);
+	memman_free_4k(memman, (int)task->buf.buf, 128 * 4);
+	task->flags = 0;
+	return;
+}
+
+void close_console(struct SHEET *sht)
+{
+	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
+	struct TASK *task = sht->task;
+	memman_free_4k(memman, (int)sht->buf, 256 * 165 * 4);
+	sheet_free(sht);
+	close_constask(task);
+	return;
+}

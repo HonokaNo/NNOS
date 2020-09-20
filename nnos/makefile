@@ -2,7 +2,7 @@ include ../configure.txt
 
 OBJS_BOOTPACK = bootpack.obj naskfunc.obj hankaku.obj graphic.obj dsctbl.obj asminterrupt.obj interrupt.obj \
 				memory.obj buffer.obj rtc.obj sheet.obj parallel.obj timer.obj mtask.obj console.obj file.obj \
-				window.obj ps2.obj tek.obj alloca.obj bmp.obj jpeg.obj
+				window.obj ps2.obj tek.obj alloca.obj bmp.obj jpeg.obj acpi.obj
 
 # デフォルト動作
 

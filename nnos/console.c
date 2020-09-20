@@ -365,7 +365,7 @@ int cmd_app(struct CONSOLE *cons, char *cmdline)
 	struct TASK *task = task_now();
 	struct SHTCTL *shtctl;
 	struct SHEET *sht;
-	char name[18], *p, *q, s[20];
+	char name[18], *p, *q;
 	int i, segsiz, datsiz, esp, dathrb, appsiz;
 
 	for(i = 0; i < 13; i++){
@@ -395,10 +395,6 @@ int cmd_app(struct CONSOLE *cons, char *cmdline)
 			esp    = *((int *)(p + 0x000c));
 			datsiz = *((int *)(p + 0x0010));
 			dathrb = *((int *)(p + 0x0014));
-			sprintf(s, "ESP=%d\n", esp);
-			cons_putstr0(cons, s);
-			sprintf(s, "SEG=%d\n", segsiz);
-			cons_putstr0(cons, s);
 
 			q = (char *)memman_alloc_4k(memman, segsiz);
 			if(q == 0){

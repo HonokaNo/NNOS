@@ -42,18 +42,24 @@ struct BOOTINFO
 	short scrnx, scrny;
 	char *vram;
 	short scline;
-	unsigned int acpi;
+	int acpi;
 };
 
 void printlog(char *format, ...);
+
 /* JPEG */
 struct DLL_STRPICENV
 {
 	int work[64 * 1024 / 4];
 };
 
+/* jpeg.c */
 int info_JPEG(struct DLL_STRPICENV *env, int *info, int size, char *fp);
 int decode0_JPEG(struct DLL_STRPICENV *env, int size, char *fp, int b_type, char *buf, int skip);
+
+/* bmp.nasm */
+int info_BMP(struct DLL_STRPICENV *env, int *info, int size, char *fp);
+int decode0_BMP(struct DLL_STRPICENV *env, int size, char *fp, int b_type, char *buf, int skip);
 
 /* windowに描画関数を実行する場合のvmode */
 #define VMODE_WINDOW	32
@@ -66,6 +72,7 @@ struct color
 	char alpha;
 };
 
+/* graphic.c */
 void init_screen(char vmode, char *vram, int scline, int scrnx, int scrny, struct color back);
 
 void putPixel(char vmode, char *vram, int scline, int x, int y, struct color c);
@@ -85,6 +92,7 @@ struct localtime
 	unsigned char hour, min, sec;
 };
 
+/* rtc.c */
 int readcmos(unsigned char addr);
 struct localtime readrtc();
 
@@ -102,6 +110,7 @@ struct GATE_DESCRIPTOR
 	short offset_high;
 };
 
+/* dsctbl.c */
 void init_gdtidt(void);
 void set_segmdesc(struct SEGMENT_DESCRIPTOR *sd, unsigned int limit, int base, int ar);
 void set_gatedesc(struct GATE_DESCRIPTOR *gd, int offset, int selector, int ar);
@@ -155,6 +164,7 @@ struct BUFFER
 	struct TASK *task;
 };
 
+/* buffer.c */
 void buffer_init(struct BUFFER *buf, int size, struct TASK *task);
 int buffer_put(struct BUFFER *buf, int tag, int data);
 struct BUFDATA buffer_get(struct BUFFER *buf);
@@ -180,6 +190,7 @@ struct MEMMAN
 	struct FREEINFO free[MEMMAN_FREES];
 };
 
+/* memory.c */
 unsigned int memtest(unsigned int start, unsigned int end);
 void memman_init(struct MEMMAN *man);
 unsigned int memman_total(struct MEMMAN *man);
@@ -191,7 +202,7 @@ int memman_free_4k(struct MEMMAN *man, unsigned int addr, unsigned int size);
 #define PORT_KEYDAT		0x0060
 #define PORT_KEYCMD		0x0064
 
-#define MAX_SHEETS	100
+#define MAX_SHEETS	160
 
 struct SHEET
 {
@@ -213,6 +224,7 @@ struct SHTCTL
 	struct SHEET sheets0[MAX_SHEETS];
 };
 
+/* sheet.c */
 struct SHTCTL *shtctl_init(struct MEMMAN *memman, unsigned char *vram, int xsize, int ysize);
 struct SHEET *sheet_alloc(struct SHTCTL *ctl);
 /* ウィンドウサイズ変更時使用 最大化していないときのサイズを保存しない */
@@ -228,6 +240,7 @@ void sheet_free(struct SHEET *sht);
 /* graphic.c */
 void init_mouse_cursor(struct SHEET *sht);
 
+/* parallel.c */
 void send_data(unsigned char data);
 void send_string(char *string);
 
@@ -251,6 +264,7 @@ struct TIMERCTL
 	struct TIMER *timers0;
 };
 
+/* timer.c */
 extern struct TIMERCTL timerctl;
 
 void init_pit(void);
@@ -306,6 +320,7 @@ struct TASKCTL
 	struct TASK *fpu_task;
 };
 
+/* mtask.c */
 extern struct TASKCTL *taskctl;
 extern struct TIMER *task_timer;
 
@@ -331,6 +346,7 @@ struct FILEHANDLE
 	int pos;
 };
 
+/* console.c */
 void console_task(struct SHEET *sht, unsigned int memtotal);
 void cons_putchar(struct CONSOLE *cons, int chr, char move);
 void cons_newline(struct CONSOLE *cons);
@@ -356,10 +372,12 @@ struct FILEINFO
 	unsigned int size;
 };
 
+/* file.c */
 void file_readfat(int *fat, unsigned char *img);
 struct FILEINFO *file_search(char *name, struct FILEINFO *finfo, int max);
 char *file_loadfile2(int clustno, int *psize, int *fat);
 
+/* window.c */
 void make_wtitle(struct SHEET *sht, char *title, char act, char bs, char resize);
 void make_window(struct SHEET *sht, char *title, char act, char bs, char resize);
 void putfontstr_sht(struct SHEET *sht, int x, int y, struct color c, struct color bc, char *s);
@@ -368,14 +386,27 @@ void make_textbox(struct SHEET *sht, int x0, int y0, int sx, int sy, struct colo
 struct color getColorWin(struct SHEET *sht, int bx, int by);
 void change_wtitle(struct SHEET *sht, char act);
 void window_resize(struct SHEET *sht, int nx, int ny);
+void keywin_off(struct SHEET *key_win);
+void keywin_on(struct SHEET *key_win);
+struct TASK *open_constask(struct SHEET *sht, unsigned int memtotal, int *fat);
+struct SHEET *open_console(struct SHTCTL *shtctl, unsigned int memtotal, int *fat);
+void close_constask(struct TASK *task);
+void close_console(struct SHEET *sht);
 
+/* pc2.c */
 void wait_KBC_sendready(void);
 void init_keyboard(void);
 void enable_mouse(struct MOUSE_DEC *mdec);
 int mouse_decode(struct MOUSE_DEC *mdec, unsigned char dat);
 
-struct TASK *open_constask(struct SHEET *sht, unsigned int memtotal, int *fat);
-struct SHEET *open_console(struct SHTCTL *shtctl, unsigned int memtotal, int *fat);
-
+/* tek.c */
 int tek_getsize(unsigned char *p);
 int tek_decomp(unsigned char *p, char *q, int size);
+
+/* acpi.c */
+void acpi_hlt(struct BOOTINFO *binfo);
+
+struct rgb
+{
+	unsigned char b, g, r, t;
+};
