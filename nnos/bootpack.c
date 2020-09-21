@@ -6,7 +6,7 @@ struct localtime lt;
 
 #define KEYCMD_LED	0xed
 
-#define DEBUG 1
+#define DEBUG 0
 
 void HariMain(void)
 {

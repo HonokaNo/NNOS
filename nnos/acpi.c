@@ -1,13 +1,6 @@
 #include "bootpack.h"
 #include <string.h>
 
-int little_endian(int big)
-{
-	char b0 = big & 0xff, b1 = (big >> 8) & 0xff;
-	char b2 = (big >> 16) & 0xff, b3 = (big >> 24) & 0xff;
-	return (b0 << 24) | (b1 << 16) | (b2 << 8) | b3;
-}
-
 struct RSDT
 {
 	/* RSDT */
@@ -98,6 +91,7 @@ struct FADT
 
 struct DSDT
 {
+	/* DSDT */
 	char signature[4];
 	unsigned int length;
 	char revision;
@@ -107,18 +101,20 @@ struct DSDT
 	char oem_revision[4];
 	char creator_id[4];
 	char creator_revision[4];
-	unsigned char *definition_block;
+	unsigned char definition_block[];
 };
 
 /* no return */
 void acpi_hlt(struct BOOTINFO *binfo)
 {
-	int l, len;
-	char *facp = 0, *buf, s[5];
+	int l, len, *ibuf;
+	char *facp = 0, *buf, s[5], *_s5_ = 0;
 
 	/* ACPI実装確認 */
 	if(binfo->acpi != 0){
 		struct RSDT *rsdt = (struct RSDT *)(binfo->acpi);
+
+		while(memcmp(rsdt->signature, "RSDT", 4)) rsdt++;
 
 		len = (rsdt->length - 36) / 4;
 		if(!memcmp(rsdt->signature, "RSDT", 4)){
@@ -138,13 +134,111 @@ void acpi_hlt(struct BOOTINFO *binfo)
 			struct FADT *fadt = (struct FADT *)facp;
 
 			struct DSDT *dsdt = (struct DSDT *)fadt->dsdt;
-			if(dsdt != 0){
+			if(!strncmp((char *)dsdt, "DSDT", 4)){
 				len = (dsdt->length - 36);
 
-				printlog("DSDT:%d\n", dsdt);
+				printlog("DSDT:%08X\n", dsdt);
+				printlog("DSDT length:%d\n", dsdt->length);
+
+				/* データを表すには最低でも11バイトは必要 */
+				for(l = 0; l < len; l++){
+					memcpy(s, &dsdt->definition_block[l], 4);
+					s[4] = 0;
+					if(!strncmp(s, "_S5_", 4)){
+						printlog("_s5_\n");
+						_s5_ = &dsdt->definition_block[l];
+						break;
+					}
+				}
+
+				if(_s5_ != 0){
+					/* skip "_S5_" */
+					_s5_ += 4;
+
+					for(l = 0; l < 18; l++){
+						printlog("data:%02X\n", _s5_[l]);
+					}
+
+					/* どちらも1-255 */
+					char s5_len = _s5_[1];
+					char s5_elements = _s5_[2];
+					char pm1a_set, pm1b_set;
+
+					/* すべて定数オブジェクトで1バイトずつ格納 */
+					if(s5_len == 6 && s5_elements == 4){
+						pm1a_set = _s5_[3];
+						pm1b_set = _s5_[4];
+
+						if(fadt->PM1a_CNT_BLK != 0){
+							short set_pm1a = pm1a_set;
+							set_pm1a <<= 10;
+							set_pm1a |= (1 << 13);
+							io_out16(fadt->PM1a_CNT_BLK, set_pm1a);
+
+							if(fadt->PM1b_CNT_BLK != 0){
+								short set_pm1b = pm1b_set;
+								set_pm1b <<= 10;
+								set_pm1b |= (1 << 13);
+								io_out16(fadt->PM1b_CNT_BLK, set_pm1b);
+							}
+						}
+					/* ダブルワード */
+					}else if(s5_len == 7 && s5_elements == 1){
+						if(_s5_[3] == 0x0c){
+							pm1a_set = _s5_[7];
+							pm1b_set = _s5_[6];
+						}
+
+						if(fadt->PM1a_CNT_BLK != 0){
+							short set_pm1a = pm1a_set;
+							set_pm1a <<= 10;
+							set_pm1a |= (1 << 13);
+							io_out16(fadt->PM1a_CNT_BLK, set_pm1a);
+
+							if(fadt->PM1b_CNT_BLK != 0){
+								short set_pm1b = pm1b_set;
+								set_pm1b <<= 10;
+								set_pm1b |= (1 << 13);
+								io_out16(fadt->PM1b_CNT_BLK, set_pm1b);
+							}
+						}
+					}else{
+						/* いらないデータは省く */
+						_s5_ += 3;
+						if(_s5_[0] == 0x00 || _s5_[0] == 0x01 || _s5_[0] == 0xff){
+							pm1a_set = _s5_[0];
+						}else if(_s5_[0] == 0x0a){
+							pm1a_set  = _s5_[1];
+							_s5_++;
+						}
+						_s5_++;
+						if(_s5_[0] == 0x00 || _s5_[0] == 0x01 || _s5_[0] == 0xff){
+							pm1b_set = _s5_[0];
+						}else if(_s5_[0] == 0x0a){
+							pm1b_set  = _s5_[1];
+						}
+
+						if(fadt->PM1a_CNT_BLK != 0){
+							short set_pm1a = pm1a_set;
+							set_pm1a <<= 10;
+							set_pm1a |= (1 << 13);
+							io_out16(fadt->PM1a_CNT_BLK, set_pm1a);
+
+							if(fadt->PM1b_CNT_BLK != 0){
+								short set_pm1b = pm1b_set;
+								set_pm1b <<= 10;
+								set_pm1b |= (1 << 13);
+								io_out16(fadt->PM1b_CNT_BLK, set_pm1b);
+							}
+						}
+					}
+				}
 			}
 		}
 	}
+
+	/* とりあえず待機 */
+	for(l = 0; l < 999999999; l++);
 
 	return;
 }
