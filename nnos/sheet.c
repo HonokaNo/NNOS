@@ -141,10 +141,10 @@ void sheet_refreshsub(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, in
 	return;
 }
 
-void sheet_updown(struct SHEET *sht, int height)
+void sheet_updown(struct SHEET *sht, int height, char refresh)
 {
 	struct SHTCTL *ctl = sht->ctl;
-	int h, old = sht->height;
+	int i, h, old = sht->height;
 
 	if(height > ctl->top + 1) height = ctl->top + 1;
 	if(height < -1) height = -1;
@@ -188,6 +188,18 @@ void sheet_updown(struct SHEET *sht, int height)
 		sheet_refreshmap(ctl, sht->vx0, sht->vy0, sht->vx0 + sht->bxsize, sht->vy0 + sht->bysize, height);
 		sheet_refreshsub(ctl, sht->vx0, sht->vy0, sht->vx0 + sht->bxsize, sht->vy0 + sht->bysize, height, height);
 	}
+
+	if(refresh){
+		struct SHEET *sh = sheet_alloc(ctl);
+		char *buf2 = (char *)memman_alloc_4k((struct MEMMAN *)MEMMAN_ADDR, sht->bxsize * sht->bysize * 4);
+		sheet_setbuf(sh, buf2, sht->bxsize, sht->bysize);
+		for(i = 0; i < sh->bxsize * sh->bysize * 4; i++) buf2[i] = 0xff;
+		sheet_slide(sh, sht->vx0, sht->vy0);
+		sheet_updown(sh, height + 1, 0);
+		memman_free_4k((struct MEMMAN *)MEMMAN_ADDR, (int)buf2, sh->bxsize * sh->bysize * 4);
+		sheet_free(sh);
+	}
+
 	return;
 }
 
@@ -216,7 +228,7 @@ void sheet_slide(struct SHEET *sht, int vx0, int vy0)
 
 void sheet_free(struct SHEET *sht)
 {
-	if(sht->height >= 0) sheet_updown(sht, -1);
+	if(sht->height >= 0) sheet_updown(sht, -1, 0);
 	sht->flags = 0;
 	return;
 }

@@ -6,12 +6,11 @@ struct localtime lt;
 
 #define KEYCMD_LED	0xed
 
-#define DEBUG 0
+void background_image(struct SHEET *sht, char *img, int *fat);
 
 void HariMain(void)
 {
 	struct color white = {0xff, 0xff, 0xff, 0xff};
-	struct color black = {0x00, 0x00, 0x00, 0xff};
 	struct color light_gray = {0xc6, 0xc6, 0xc6, 0xff};
 	struct color back24  = {0x99, 0xd9, 0xea, 0xff};
 	struct color back8 = {0x00, 0x84, 0x84, 0xff};
@@ -33,14 +32,10 @@ void HariMain(void)
 	int key_shift = 0, key_leds = (binfo->leds >> 4) & 7, keycmd_wait = -1;
 	int x, y, j, mmx = -0x7fffffff, mmy = -0x7fffffff;
 	struct SHEET *sht = 0, *key_win, *sht2;
-	struct FILEINFO *finfo;
 	int i, *fat;
+	struct FILEINFO *finfo;
 	unsigned char *nihongo;
 	extern char hankaku[4096];
-	int fsiz, info[8], bgx, bgy;
-	char *bbuf;
-	struct rgb *ctable;
-	struct DLL_STRPICENV env;
 
 	static char keytable0[0x80] = {
 		0,   0,   '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '^', 0x08, 0,
@@ -115,38 +110,7 @@ void HariMain(void)
 	init_screen(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), binfo->scrnx, binfo->scrny, back);
 	sht_back->resize = 1;
 
-	if(!DEBUG){
-		finfo = file_search("backg.ima", (struct FILEINFO *)(ADR_DISKIMG + 0x2600), 224);
-		fsiz = finfo->size;
-		bbuf = file_loadfile2(finfo->clustno, &fsiz, fat);
-		ctable = (struct rgb *)memman_alloc_4k(memman, sizeof(struct color) * binfo->scrnx * (binfo->scrny - 26));
-		i = info_JPEG(&env, info, fsiz, bbuf);
-
-		if(i == 0) info_BMP(&env, info, fsiz, bbuf);
-
-		if(i != 0){
-			/* info[2] = width info[3] = height */
-			if(info[2] == binfo->scrnx && info[3] == binfo->scrny - 26){
-				if(info[0] == 1) decode0_BMP(&env, fsiz, bbuf, 4, (char *)ctable, 0);
-				else i = decode0_JPEG(&env, fsiz, bbuf, 4, (char *)ctable, 0);
-				if(i == 0){
-					for(bgy = 0; bgy < binfo->scrny - 26; bgy++){
-						for(bgx = 0; bgx < binfo->scrnx; bgx++){
-							struct color c;
-							c.r = ctable[bgy * binfo->scrnx + bgx].r;
-							c.g = ctable[bgy * binfo->scrnx + bgx].g;
-							c.b = ctable[bgy * binfo->scrnx + bgx].b;
-							c.alpha = 0xff;
-
-							putPixel(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), bgx, bgy, c);
-						}
-					}
-				}
-			}
-		}
-		memman_free_4k(memman, (int)bbuf, fsiz);
-		memman_free_4k(memman, (int)ctable, binfo->scrnx * (binfo->scrny - 26) * 4);
-	}
+	background_image(sht_back, "backg.ima", fat);
 
 	task_a = task_init(memman);
 	buffer.task = task_a;
@@ -158,7 +122,6 @@ void HariMain(void)
 	sheet_setbuf(sht_mouse, buf_mouse, 16, 16);
 
 	init_mouse_cursor(sht_mouse);
-	buf_mouse[1 * WINDOW_SCLINE(sht_mouse) + 10 * VMODE_WINDOW / 8 + 3] = 0xff;
 	mx = (binfo->scrnx - 16) / 2;
 	my = (binfo->scrny - 28 - 16) / 2;
 
@@ -174,26 +137,17 @@ void HariMain(void)
 		sheet_slide(sht_mouse, mx, my);
 	}
 
-	sheet_updown(sht_back,  0);
-	sheet_updown(key_win,   1);
-	sheet_updown(sht_mouse, 2);
+	sheet_updown(sht_back,  0, 0);
+	sheet_updown(key_win,   1, 0);
+	sheet_updown(sht_mouse, 2, 0);
 
 	keywin_on(key_win);
 
 	/* ACPIアドレスがうまく取れていないので変換する */
 	short f0 = (binfo->acpi) & 0xffff, f1 = (binfo->acpi << 16) & 0xffff;
 	binfo->acpi = (f0 << 16) | f1;
-	if(DEBUG){
-		sprintf(s, "ACPI=%08X", binfo->acpi);
-		putfontstr_sht(sht_back, 400, 400, white, back, s);
-	}
 
 	/* 画面初期化 */
-	if(DEBUG){
-		putfontstr_sht(sht_back,  8,  8, white, back, "ABC 123");
-		putfontstr(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), 31, 31, black, "No Name OS.");
-		putfontstr(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), 30, 30, white, "No Name OS.");
-	}
 
 	/* 時刻取得 */
 	lt = readrtc();
@@ -202,17 +156,6 @@ void HariMain(void)
 
 	sprintf(s, "%02d:%02d", lt.hour, lt.min);
 	putfontstr_sht(sht_back, binfo->scrnx - 45, binfo->scrny - 21, white, light_gray, s);
-
-	if(DEBUG){
-		if(memtotal / (1024 * 1024) >= 1024){
-			sprintf(s, "memory %dMB / %dGB", memtotal / (1024 * 1024), memtotal / (1024 * 1024 * 1024));
-		}else sprintf(s, "memory %dMB", memtotal / (1024 * 1024));
-		putfontstr_sht(sht_back, 8, 48, white, back, s);
-
-		putfontstr_sht(sht_back, 8, 80, white, back, "keydata: not found");
-
-		sheet_refresh(sht_back, 0, 0, binfo->scrnx, 120);
-	}
 
 	sheet_refresh(sht_back, binfo->scrnx - 45, binfo->scrny - 21, binfo->scrnx - 5, binfo->scrny - 5);
 
@@ -227,14 +170,10 @@ void HariMain(void)
 	}else{
 		nihongo = (unsigned char *)memman_alloc_4k(memman, 16 * 256 + 32 * 94 * 47);
 		/* 本来英語フォントの部分は英語フォント */
-		for(i = 0; i < 16 * 256; i++){
-			nihongo[i] = hankaku[i];
-		}
+		for(i = 0; i < 16 * 256; i++) nihongo[i] = hankaku[i];
 
 		/* フォントがない部分は0xffで埋め尽くす */
-		for(i = 16 * 256; i < 16 * 256 + 32 * 94 * 47; i++){
-			nihongo[i] = 0xff;
-		}
+		for(i = 16 * 256; i < 16 * 256 + 32 * 94 * 47; i++) nihongo[i] = 0xff;
 	}
 	*((int *)0x0fe8) = (int)nihongo;
 
@@ -262,14 +201,6 @@ void HariMain(void)
 			}
 
 			if(dat.tag == TAG_KEYBOARD){
-				if(DEBUG){
-					boxfill(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), back, 8, 80, 240, 80 + 16);
-					sprintf(s, "keydata: %02X", dat.data);
-					putfontstr(VMODE_WINDOW, buf_back, WINDOW_SCLINE(sht_back), 8, 80, white, s);
-					/* keydata: not foundよりも短い文字列で書き換えるのでrefresh範囲を広めにとってrefresh */
-					sheet_refresh(sht_back, 8, 80, 240, 96);
-				}
-
 				if(dat.data < 0x80){
 					if(key_shift == 0) s[0] = keytable0[dat.data];
 					else s[0] = keytable1[dat.data];
@@ -333,12 +264,12 @@ void HariMain(void)
 					if(key_win != 0) keywin_off(key_win);
 					key_win = open_console(shtctl, memtotal, fat);
 					sheet_slide(key_win, 32, 4);
-					sheet_updown(key_win, shtctl->top);
+					sheet_updown(key_win, shtctl->top, 0);
 					keywin_on(key_win);
 				}
 				/* F11 */
 				if(dat.data == 0x57 && shtctl->top > 2){
-					sheet_updown(shtctl->sheets[1], shtctl->top - 1);
+					sheet_updown(shtctl->sheets[1], shtctl->top - 1, 0);
 				}
 
 				if(dat.data == 0xfa) keycmd_wait = -1;
@@ -362,14 +293,6 @@ void HariMain(void)
 				}
 
 				if(decode == 1){
-					if(DEBUG){
-						sprintf(s, "[lcr %4d %4d]", mdec.x, mdec.y);
-						if((mdec.btn & 0x01) != 0) s[1] = 'L';
-						if((mdec.btn & 0x02) != 0) s[3] = 'R';
-						if((mdec.btn & 0x04) != 0) s[2] = 'C';
-						putfontstr_sht_ref(sht_back, 8, 116, white, back, s);
-					}
-
 					/* カーソル移動 */
 					mx += mdec.x;
 					my += mdec.y;
@@ -377,10 +300,6 @@ void HariMain(void)
 					if(my < 0) my = 0;
 					if(mx > binfo->scrnx - 1) mx = binfo->scrnx - 1;
 					if(my > binfo->scrny - 1) my = binfo->scrny - 1;
-					if(DEBUG){
-						sprintf(s, "(%3d, %3d)", mx, my);
-						putfontstr_sht_ref(sht_back, 8, 132, white, back, s);
-					}
 					sheet_slide(sht_mouse, mx, my);
 
 					if((mdec.btn & 0x01) != 0){
@@ -389,16 +308,10 @@ void HariMain(void)
 								sht = shtctl->sheets[j];
 								x = mx - sht->vx0;
 								y = my - sht->vy0;
-								if(sht == sht_back){
-									if(2 <= x && x <= 60 && binfo->scrny - 24 <= y && y <= binfo->scrny - 3){
-										printlog("os hlt\n");
-										/* 電断処理 */
-										acpi_hlt(binfo);
-									}
-								}else if(0 <= x && x < sht->bxsize && 0 <= y && y < sht->bysize){
+								if(sht != sht_back && 0 <= x && x < sht->bxsize && 0 <= y && y < sht->bysize){
 									c = getColorWin(sht, x, y);
 									if(c.alpha != 0x00){
-										sheet_updown(sht, shtctl->top - 1);
+										sheet_updown(sht, shtctl->top - 1, 0);
 										if(sht != key_win){
 											keywin_off(key_win);
 											key_win = sht;
@@ -413,24 +326,16 @@ void HariMain(void)
 											if(sht->bxsize - 38 <= x && x < sht->bxsize - 22 && 5 <= y && y < 19){
 												if(!sht->bs){
 													/* 最大化ボタン */
-													if(sht->bxsize != binfo->scrnx && sht->bysize != binfo->scrny - 26){
+													if(sht->bxsize != binfo->scrnx && sht->bysize != binfo->scrny - 28){
 														sht->wx = sht->vx0;
 														sht->wy = sht->vy0;
 
-														memman_free_4k(memman, (int)sht->buf, sht->bxsize * sht->bysize * 4);
-														char *buf2 = (unsigned char *)memman_alloc_4k(memman, (binfo->scrnx * (binfo->scrny - 26) * 4));
-														sheet_resetbuf(sht, buf2, binfo->scrnx, binfo->scrny - 26);
-														make_window(sht, sht->title, sht == key_win ? 1 : 0, 1, 1);
+														window_resize(sht, binfo->scrnx, binfo->scrny - 28, sht == key_win ? 1 : 0);
 
 														sheet_slide(sht, 0, 0);
 
-														sheet_refreshsub(sht_back->ctl, 0, 0, binfo->scrnx, binfo->scrny, 0, sht_back->ctl->top);
-
-														/* コンソール */
-														if((sht->flags & 0x10) == 0){
-															make_textbox(sht, 8, 28, sht->bxsize - 16, sht->bysize - 35, black);
-															putfontstr_sht(sht, 8, 28, white, black, ">");
-														}
+														sheet_refreshmap(sht_back->ctl, 0, 0, binfo->scrnx, binfo->scrny, 0);
+														sheet_refreshsub(sht_back->ctl, 0, 0, binfo->scrnx, binfo->scrny, sht->height, sht->ctl->top);
 
 														sht->bs = 1;
 
@@ -443,29 +348,12 @@ void HariMain(void)
 												}else{
 													/* サイズ戻すボタン */
 													if(sht->bxsize != sht->mix && sht->bysize != sht->miy){
-														memman_free_4k(memman, (int)sht->buf, sht->bxsize * sht->bysize * 4);
-														char *buf2 = (unsigned char *)memman_alloc_4k(memman, sht->mix * sht->miy * 4);
-														sheet_resetbuf(sht, buf2, sht->mix, sht->miy);
-														make_window(sht, sht->title, sht == key_win ? 1 : 0, 0, 1);
+														window_resize(sht, sht->mix, sht->miy, sht == key_win ? 1 : 0);
 
 														sheet_slide(sht, sht->wx, sht->wy);
 
-														/* いらなくなった部分をrefreshするために適当なシートを作成して上にかぶせた後すぐ外す */
-														struct SHEET *shtb = sheet_alloc(shtctl);
-														unsigned char *bufb = (unsigned char *)memman_alloc_4k(memman, binfo->scrnx * binfo->scrny * 4);
-														sheet_resetbuf(shtb, bufb, binfo->scrnx, binfo->scrny);
-														sheet_slide(shtb, 0, 0);
-														sheet_updown(shtb, shtb->ctl->top - 1);
-														/* シートを解放 ここで非表示にもなる */
-														sheet_free(shtb);
-														memman_free_4k(memman, (int)bufb, binfo->scrnx * binfo->scrny * 4);
-
-														/* コンソールは描画も行う */
-														if((sht->flags & 0x10) == 0){
-															make_textbox(sht, 8, 28, sht->bxsize - 16, sht->bysize - 35, black);
-															putfontstr_sht(sht, 8, 28, white, black, ">");
-															sheet_refresh(sht, 0, 0, sht->bxsize, sht->bysize);
-														}
+														sheet_refreshmap(sht_back->ctl, 0, 0, binfo->scrnx, binfo->scrny, 0);
+														sheet_refreshsub(sht_back->ctl, 0, 0, binfo->scrnx, binfo->scrny, 0, sht->ctl->top);
 
 														sht->bs = 0;
 
@@ -491,7 +379,7 @@ void HariMain(void)
 												task_run(task, -1, 0);
 											}else{
 												task = sht->task;
-												sheet_updown(sht, -1);
+												sheet_updown(sht, -1, 0);
 												keywin_off(key_win);
 												key_win = shtctl->sheets[shtctl->top - 1];
 												keywin_on(key_win);
@@ -524,4 +412,48 @@ void HariMain(void)
 			}
 		}
 	}
+}
+
+void background_image(struct SHEET *sht, char *img, int *fat)
+{
+	struct BOOTINFO *binfo = (struct BOOTINFO *)0x0ff0;
+	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
+	int fsiz, i, info[8], bgx, bgy;
+	char *bbuf;
+	struct FILEINFO *finfo;
+	struct rgb *ctable;
+	struct DLL_STRPICENV env;
+
+	finfo = file_search(img, (struct FILEINFO *)(ADR_DISKIMG + 0x2600), 224);
+	fsiz = finfo->size;
+	bbuf = file_loadfile2(finfo->clustno, &fsiz, fat);
+	ctable = (struct rgb *)memman_alloc_4k(memman, sizeof(struct color) * binfo->scrnx * (binfo->scrny - 28));
+	i = info_JPEG(&env, info, fsiz, bbuf);
+
+	if(i == 0) info_BMP(&env, info, fsiz, bbuf);
+
+	if(i != 0){
+		/* info[2] = width info[3] = height */
+		if(info[2] == binfo->scrnx && info[3] == binfo->scrny - 28){
+			if(info[0] == 1) decode0_BMP(&env, fsiz, bbuf, 4, (char *)ctable, 0);
+			else i = decode0_JPEG(&env, fsiz, bbuf, 4, (char *)ctable, 0);
+			if(i == 0){
+				for(bgy = 0; bgy < binfo->scrny - 28; bgy++){
+					for(bgx = 0; bgx < binfo->scrnx; bgx++){
+						struct color c;
+						c.r = ctable[bgy * binfo->scrnx + bgx].r;
+						c.g = ctable[bgy * binfo->scrnx + bgx].g;
+						c.b = ctable[bgy * binfo->scrnx + bgx].b;
+						c.alpha = 0xff;
+
+						putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), bgx, bgy, c);
+					}
+				}
+			}
+		}
+	}
+	memman_free_4k(memman, (int)bbuf, fsiz);
+	memman_free_4k(memman, (int)ctable, binfo->scrnx * (binfo->scrny - 26) * 4);
+
+	return;
 }

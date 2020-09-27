@@ -4,6 +4,8 @@
 
 struct BUFFER timer_buf;
 
+extern struct localtime lt;
+
 void console_task(struct SHEET *sht, unsigned int memtotal)
 {
 	struct TASK *task = task_now();
@@ -19,7 +21,10 @@ void console_task(struct SHEET *sht, unsigned int memtotal)
 	cons.sht = sht;
 	cons.cur_x =  8;
 	cons.cur_y = 28;
+	cons.start_y = cons.cur_y;
 	cons.cur_c = invisible_cursor;
+	cons.ccolor = white;
+	cons.bcolor = black;
 	task->cons = &cons;
 
 	if(cons.sht != 0){
@@ -48,7 +53,7 @@ void console_task(struct SHEET *sht, unsigned int memtotal)
 			dat = buffer_get(&task->buf);
 			io_sti();
 			if(dat.tag == 0){
-				if(dat.data == 2) cons.cur_c = white;
+				if(dat.data == 2) cons.cur_c = cons.ccolor;
 				if(dat.data == 3){
 					if(cons.sht != 0){
 						boxfill(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), black, cons.cur_x, cons.cur_y, cons.cur_x + 7, cons.cur_y + 15);
@@ -60,16 +65,34 @@ void console_task(struct SHEET *sht, unsigned int memtotal)
 					/* 前のカーソルが見えちゃうので消す */
 					if(cons.cur_x < cons.sht->bxsize && cons.cur_y < cons.sht->bysize)
 					boxfill(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), black, cons.cur_x, cons.cur_y, cons.cur_x + 7, cons.cur_y + 15);
-					sheet_refresh(cons.sht, cons.cur_x, cons.cur_y, cons.cur_x + 8, cons.cur_y + 16);
+
+					make_textbox(sht, 8, 28, sht->bxsize - 16, sht->bysize - 35, cons.bcolor);
+					putfontstr_sht(sht, 8, 28, cons.ccolor, cons.bcolor, ">");
+					sheet_refresh(cons.sht, 0, 0, cons.sht->bxsize, cons.sht->bysize);
+
 					cons.cur_x = 16;
 					cons.cur_y = 28;
 				}
 			}
 			if(dat.tag == TAG_KEYBOARD){
 				if(dat.data == 8){
-					if(cons.cur_x > 16){
-						cons_putchar(&cons, ' ', 0);
-						cons.cur_x -= 8;
+					if(cons.cur_y == cons.start_y){
+						if(cons.cur_x > 16){
+							cons_putchar(&cons, ' ', 0);
+							cons.cur_x -= 8;
+						}
+					}else{
+						if(cons.cur_x > 8){
+							cons_putchar(&cons, ' ', 0);
+							cons.cur_x -= 8;
+						}else{
+							/* カーソルが残ることがあるので対策 */
+							boxfill(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), cons.bcolor, cons.cur_x, cons.cur_y, cons.cur_x + 7, cons.cur_y + 15);
+							sheet_refresh(sht, cons.cur_x, cons.cur_y, cons.cur_x + 8, cons.cur_y + 16);
+							cons.cur_y -= 16;
+							cons.cur_x = cons.sht->bxsize - 16;
+							cons_putchar(&cons, ' ', 0);
+						}
 					}
 				}else if(dat.data == 10){
 					cons_putchar(&cons, ' ', 0);
@@ -81,18 +104,17 @@ void console_task(struct SHEET *sht, unsigned int memtotal)
 					if(cons.sht == 0) cmd_exit(&cons);
 
 					cons_putchar(&cons, '>', 1);
+					cons.start_y = cons.cur_y;
 				}else{
-					if(cons.cur_x < cons.sht->bxsize - 16){
-						cmdline[cons.cur_x / 8 - 2] = dat.data;
-						cons_putchar(&cons, dat.data, 1);
-					}
+					cmdline[cons.cur_x / 8 - 2] = dat.data;
+					cons_putchar(&cons, dat.data, 1);
 				}
 			}
 			if(dat.tag == TAG_TIMER){
 				if(dat.data == 0 || dat.data == 1){
 					timer_init(cons.timer, &task->buf, (dat.data != 0 ? 0 : 1));
 					if(cons.cur_c.alpha != 0x00){
-						cons.cur_c = (dat.data != 0 ? white : black);
+						cons.cur_c = (dat.data != 0 ? cons.ccolor : cons.bcolor);
 					}
 					timer_settime(cons.timer, 50);
 				}
@@ -108,24 +130,24 @@ void console_task(struct SHEET *sht, unsigned int memtotal)
 void cons_putchar(struct CONSOLE *cons, int chr, char move)
 {
 	char s[2];
-	struct color black = {0x00, 0x00, 0x00, 0xff};
-	struct color white = {0xff, 0xff, 0xff, 0xff};
 
 	s[0] = chr;
 	s[1] = 0;
 	if(s[0] == 0x09){
 		for(;;){
 			if(cons->sht != 0){
-				putfontstr_sht_ref(cons->sht, cons->cur_x, cons->cur_y, white, black, " ");
+				putfontstr_sht_ref(cons->sht, cons->cur_x, cons->cur_y, cons->ccolor, cons->bcolor, " ");
 			}
 			cons->cur_x += 8;
 			if(cons->cur_x == 8 + (cons->sht->bxsize - 16)) cons_newline(cons);
 			if(((cons->cur_x - 8) & 0x1f) == 0) break;
 		}
-	}else if(s[0] == 0x0a) cons_newline(cons);
-	else if(s[0] == 0x0d);
+	}else if(s[0] == 0x0a){
+		cons_newline(cons);
+		cons->start_y = cons->cur_y;
+	}else if(s[0] == 0x0d);
 	else{
-		putfontstr_sht_ref(cons->sht, cons->cur_x, cons->cur_y, white, black, s);
+		if(cons->sht != 0) putfontstr_sht_ref(cons->sht, cons->cur_x, cons->cur_y, cons->ccolor, cons->bcolor, s);
 		if(move){
 			cons->cur_x += 8;
 			if(cons->cur_x == 8 + (cons->sht->bxsize - 16)) cons_newline(cons);
@@ -137,7 +159,6 @@ void cons_putchar(struct CONSOLE *cons, int chr, char move)
 void cons_newline(struct CONSOLE *cons)
 {
 	int x, y;
-	struct color black = {0x00, 0x00, 0x00, 0xff};
 	struct TASK *task = task_now();
 
 	if(cons->cur_y < 28 + (cons->sht->bysize - 37 - 32)) cons->cur_y += 16;
@@ -154,7 +175,7 @@ void cons_newline(struct CONSOLE *cons)
 
 			for(y = 28 + (cons->sht->bysize - 37 - 16); y < 28 + (cons->sht->bysize - 37); y++){
 				for(x = 8; x < 8 + (cons->sht->bxsize - 16); x++){
-					putPixel(VMODE_WINDOW, cons->sht->buf, WINDOW_SCLINE(cons->sht), x, y, black);
+					putPixel(VMODE_WINDOW, cons->sht->buf, WINDOW_SCLINE(cons->sht), x, y, cons->bcolor);
 				}
 			}
 
@@ -170,13 +191,13 @@ void cons_newline(struct CONSOLE *cons)
 
 				for(y = 28 + (cons->sht->bysize - 37 - 32); y < 28 + (cons->sht->bysize - 16); y++){
 					for(x = 8; x < 8 + (cons->sht->bxsize - 16); x++){
-						putPixel(VMODE_WINDOW, cons->sht->buf, WINDOW_SCLINE(cons->sht), x, y, black);
+						putPixel(VMODE_WINDOW, cons->sht->buf, WINDOW_SCLINE(cons->sht), x, y, cons->bcolor);
 					}
 				}
 
 				for(y = 28 + (cons->sht->bysize - 37 - 16); y < 28 + (cons->sht->bysize - 37); y++){
 					for(x = 8; x < 8 + (cons->sht->bxsize - 16); x++){
-						putPixel(VMODE_WINDOW, cons->sht->buf, WINDOW_SCLINE(cons->sht), x, y, black);
+						putPixel(VMODE_WINDOW, cons->sht->buf, WINDOW_SCLINE(cons->sht), x, y, cons->bcolor);
 					}
 				}
 
@@ -191,9 +212,42 @@ void cons_newline(struct CONSOLE *cons)
 	return;
 }
 
+struct color colortbl[8] = {
+	{0x00, 0x00, 0x00, 0xff},
+	{0xff, 0x00, 0x00, 0xff},
+	{0x00, 0xff, 0x00, 0xff},
+	{0xff, 0xff, 0x00, 0xff},
+	{0x00, 0x00, 0xff, 0xff},
+	{0xff, 0x00, 0xff, 0xff},
+	{0x00, 0xff, 0xff, 0xff},
+	{0xff, 0xff, 0xff, 0xff}
+};
+
 void cons_putstr0(struct CONSOLE *cons, char *s)
 {
-	for(; *s != 0; s++) cons_putchar(cons, *s, 1);
+	for(; *s != 0; s++){
+		/* escape */
+		if(*s == 0x1b){
+			/* ansi escape */
+			if(s[1] == '['){
+				/* change back/fore ground color */
+				if(s[4] == 'm'){
+					if('0' <= s[3] && s[3] <= '7'){
+						if(s[2] == '3'){
+							cons->ccolor = colortbl[s[3] - '0'];
+
+							s += 5;
+						}else if(s[2] == '4'){
+							cons->bcolor = colortbl[s[3] - '0'];
+
+							s += 5;
+						}
+					}
+				}
+			}
+		}
+		cons_putchar(cons, *s, 1);
+	}
 	return;
 }
 
@@ -201,7 +255,31 @@ void cons_putstr1(struct CONSOLE *cons, char *s, int l)
 {
 	int i;
 
-	for(i = 0; i < l; i++) cons_putchar(cons, s[i], 1);
+	for(i = 0; i < l; i++){
+		for(; *s != 0; s++){
+			/* escape */
+			if(*s == 0x1b){
+				/* ansi escape */
+				if(s[1] == '['){
+					/* change back/fore ground color */
+					if(s[4] == 'm'){
+						if('0' <= s[3] && s[3] <= '7'){
+							if(s[2] == '3'){
+								cons->ccolor = colortbl[s[3] - '0'];
+
+								i += 5;
+							}else if(s[2] == '4'){
+								cons->bcolor = colortbl[s[3] - '0'];
+
+								i += 5;
+							}
+						}
+					}
+				}
+			}
+		}
+		cons_putchar(cons, s[i], 1);
+	}
 	return;
 }
 
@@ -209,12 +287,17 @@ void cons_runcmd(char *cmdline, struct CONSOLE *cons, unsigned memtotal)
 {
 	if(!strcmp(cmdline, "mem") && cons->sht != 0) cmd_mem(cons, memtotal);
 	else if((!strcmp(cmdline, "cls")) && cons->sht != 0) cmd_cls(cons);
-	else if(!strcmp(cmdline, "neofetch") && cons->sht != 0) cmd_neofetch(cons);
+	else if(!strcmp(cmdline, "neofetch") && cons->sht != 0) cmd_neofetch(cons, memtotal);
 	else if((!strcmp(cmdline, "dir")) && cons->sht != 0) cmd_dir(cons);
 	else if(!strcmp(cmdline, "exit")) cmd_exit(cons);
 	else if(!strncmp(cmdline, "start ", 6)) cmd_start(cons, cmdline, memtotal);
 	else if(!strncmp(cmdline, "ncst ", 5)) cmd_ncst(cons, cmdline, memtotal);
-	else if(!strncmp(cmdline, "langmode ", 9)) cmd_langmode(cons, cmdline);
+	else if(!strncmp(cmdline, "langmode ", 9) && cons->sht != 0) cmd_langmode(cons, cmdline);
+	else if(!strcmp(cmdline, "shutdown")) cmd_shutdown(cons);
+	else if(!strncmp(cmdline, "rename ", 7)) cmd_rename(cons, cmdline);
+	else if(!strncmp(cmdline, "del ", 4)) cmd_del(cons, cmdline);
+	else if(!strncmp(cmdline, "chgbg ", 6) && cons->sht != 0) cmd_chgbg(cons, cmdline);
+	else if(!strncmp(cmdline, "chgfg ", 6) && cons->sht != 0) cmd_chgfg(cons, cmdline);
 	else if(cmdline[0] != 0){
 		if(cmd_app(cons, cmdline) == 0){
 			cons_putstr0(cons, "Bad command.\n\n");
@@ -242,11 +325,10 @@ void cmd_mem(struct CONSOLE *cons, unsigned int memtotal)
 void cmd_cls(struct CONSOLE *cons)
 {
 	int x, y;
-	struct color black = {0x00, 0x00, 0x00, 0xff};
 
 	for(y = 28; y < 28 + 128; y++){
 		for(x = 8; x < 8 + 240; x++){
-			putPixel(VMODE_WINDOW, cons->sht->buf, WINDOW_SCLINE(cons->sht), x, y, black);
+			putPixel(VMODE_WINDOW, cons->sht->buf, WINDOW_SCLINE(cons->sht), x, y, cons->bcolor);
 		}
 	}
 	sheet_refresh(cons->sht, 8, 28, 8 + 240, 28 + 128);
@@ -254,20 +336,34 @@ void cmd_cls(struct CONSOLE *cons)
 	return;
 }
 
-void cmd_neofetch(struct CONSOLE *cons)
+void cmd_neofetch(struct CONSOLE *cons, unsigned int memtotal)
 {
-	char s[30];
-	struct color black = {0x00, 0x00, 0x00, 0xff};
-	struct color light_blue = {0x00, 0xff, 0xff, 0xff};
+	char s[50];
+	struct color old_bg = cons->bcolor, old_fg = cons->ccolor;
+	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
+	struct BOOTINFO *binfo = (struct BOOTINFO *)0x0ff0;
 
-	sprintf(s, "OS:NNOS 1.0");
-	putfontstr_sht_ref(cons->sht, 8 + 8 * 8, cons->cur_y, light_blue, black, s);
+	cons_putstr0(cons, " N    N   \e[36mOS\e[37m:NNOS");
 	cons_newline(cons);
-	sprintf(s, "Model:x86(after i486)");
-	putfontstr_sht_ref(cons->sht, 8 + 8 * 8, cons->cur_y, light_blue, black, s);
+	cons_putstr0(cons, " N n  N   \e[36mModel\e[37m:x86(after i486)");
+	cons_newline(cons);
+	cons_putstr0(cons, " N n  N   \e[36mShell\e[37m:Haribote Shell + NNOS commands");
+	cons_newline(cons);
+	sprintf(s,         " N  n N   \e[36mResolution\e[37m:%dx%d", binfo->scrnx, binfo->scrny);
+	cons_putstr0(cons, s);
+	cons_newline(cons);
+	sprintf(s,         " N  n N   \e[36mMemory\e[37m:%dMB / %dMB", (memtotal / (1024 * 1024)) - (memman_total(memman) / (1024 * 1024)), memtotal / (1024 * 1024));
+	cons_putstr0(cons, s);
+	cons_newline(cons);
+	sprintf(s,         " N    N   \e[40m  \e[41m  \e[42m  \e[43m  \e[44m  \e[45m  \e[46m  \e[47m  \e[40m");
+	cons_putstr0(cons, s);
 	cons_newline(cons);
 
 	cons_newline(cons);
+
+	cons->ccolor = old_fg;
+	cons->bcolor = old_bg;
+
 	return;
 }
 
@@ -275,22 +371,37 @@ void cmd_dir(struct CONSOLE *cons)
 {
 	struct FILEINFO *finfo = (struct FILEINFO *)(ADR_DISKIMG + 0x2600);
 	int i, j;
-	char s[30];
+	char s[40];
+	struct localtime time;
+	int osize = 0;
 
+	if((lt.y0 * 100 + lt.y1) >= 2100){
+		char *fatal = "\e[31mFATAL:If you have files that were updated 2108 later, you risk corrupting your file system.";
+		cons_putstr0(cons, fatal);
+		cons_newline(cons);
+	}
+
+	cons_putstr0(cons, "FILENAME EXT  YEAR DATE   SIZE(byte)");
+	cons_newline(cons);
 	for(i = 0; i < 224; i++){
 		if(finfo[i].name[0] == 0x00) break;
 
 		if(finfo[i].name[0] != 0xe5){
 			if((finfo[i].type & 0x18) == 0){
-				sprintf(s, "filename.ext   %7d\n", finfo[i].size);
+				file_gettime(finfo[i], &time);
+				sprintf(s, "filename.ext  %02d%02d/%02d/%02d  %7d\n", time.y0, time.y1, time.month, time.day, finfo[i].size);
 				for(j = 0; j < 8; j++) s[j] = finfo[i].name[j];
 				s[ 9] = finfo[i].ext[0];
 				s[10] = finfo[i].ext[1];
 				s[11] = finfo[i].ext[2];
 				cons_putstr0(cons, s);
+				osize += finfo[i].size;
 			}
 		}
 	}
+	cons_newline(cons);
+	sprintf(s, "NNOS using disk:%7dbyte.\n", osize);
+	cons_putstr0(cons, s);
 	cons_newline(cons);
 	return;
 }
@@ -320,7 +431,7 @@ void cmd_start(struct CONSOLE *cons, char *cmdline, int memtotal)
 	int i;
 
 	sheet_slide(sht, 32, 4);
-	sheet_updown(sht, shtctl->top);
+	sheet_updown(sht, shtctl->top, 0);
 
 	for(i = 6; cmdline[i] != 0; i++){
 		buffer_put(buf, TAG_KEYBOARD, cmdline[i]);
@@ -358,6 +469,120 @@ void cmd_langmode(struct CONSOLE *cons, char *cmdline)
 	return;
 }
 
+void cmd_shutdown(struct CONSOLE *cons)
+{
+	acpi_hlt((struct BOOTINFO *)0x0ff0);
+
+	cons_putstr0(cons, "Shutdown error.\n");
+	cons_newline(cons);
+
+	return;
+}
+
+void cmd_rename(struct CONSOLE *cons, char *cmdline)
+{
+	char *n = cmdline + 7, *n2, *n3;
+	char fname2[8], fext2[3];
+	int l, len2 = 0;
+	struct FILEINFO *finfo1, *finfo2;
+
+	/* 次のファイル名の位置を指す */
+	n2 = n;
+	while(*n2 != '.') n2++;
+	while(*n2 != ' ') n2++;
+	n3 = n2 + 1;
+	*n2 = 0;
+
+	/* 現在のファイル名 */
+	char *f1 = n;
+	char *f2 = n3;
+
+	for(l = 0; l < strlen(f1); l++){
+		if('a' <= f1[l] && f1[l] <= 'z') f1[l] -= 0x20;
+	}
+	for(l = 0; l < strlen(f2); l++){
+		if('a' <= f2[l] && f2[l] <= 'z') f2[l] -= 0x20;
+	}
+
+	for(l = 0; f2[l] != '.'; l++) len2++;
+
+	memset(fname2, ' ', 8);
+
+	/* ファイル名の部分をコピー */
+	memcpy(fname2, f2, len2);
+
+	/* 拡張子部分コピー */
+	memcpy(fext2, f2 + len2 + 1, 3);
+
+
+	finfo1 = file_search(f1, (struct FILEINFO *)(ADR_DISKIMG + 0x2600), 224);
+	finfo2 = file_search(f2, (struct FILEINFO *)(ADR_DISKIMG + 0x2600), 224);
+
+	/* 現在のファイル名はあるね */
+	/* 2つ目のファイル名はあっちゃだめだよね */
+	if(finfo1 != 0 && finfo2 == 0){
+		/* コピーするよ */
+		memcpy(finfo1->name, fname2, 8);
+		memcpy(finfo1->ext, fext2, 3);
+	}else cons_putstr0(cons, "command arg error.");
+
+	return;
+}
+
+void cmd_del(struct CONSOLE *cons, char *cmdline)
+{
+	char *f;
+	struct FILEINFO *finfo;
+
+	f = cmdline + 4;
+	finfo = file_search(f, (struct FILEINFO *)(ADR_DISKIMG + 0x2600), 224);
+
+	if(finfo != 0) finfo->name[0] = 0xe5;
+	else cons_putstr0(cons, "command arg error.");
+
+	return;
+}
+
+void cmd_chgbg(struct CONSOLE *cons, char *cmdline)
+{
+	char *c;
+	int l;
+
+	c = cmdline + 6;
+
+	/* ざっくり大文字に変換 */
+	for(l = 0; l < strlen(c); l++) if(c[l] >= 0x60) c[l] -= 20;
+
+	if(!strcmp(c, "BLACK")) cons->bcolor = colortbl[0];
+	if(!strcmp(c, "RED")) cons->bcolor = colortbl[1];
+	if(!strcmp(c, "GREEN")) cons->bcolor = colortbl[2];
+	if(!strcmp(c, "YELLOW")) cons->bcolor = colortbl[3];
+	if(!strcmp(c, "BLUE")) cons->bcolor = colortbl[4];
+	if(!strcmp(c, "MAGENTA")) cons->bcolor = colortbl[5];
+	if(!strcmp(c, "CYAN")) cons->bcolor = colortbl[6];
+	if(!strcmp(c, "WHITE")) cons->bcolor = colortbl[7];
+}
+
+void cmd_chgfg(struct CONSOLE *cons, char *cmdline)
+{
+	char *c;
+	int l;
+
+	c = cmdline + 6;
+
+	/* ざっくり大文字に変換 */
+	for(l = 0; l < strlen(c); l++) if(c[l] >= 0x60) c[l] -= 20;
+
+	if(!strcmp(c, "BLACK")) cons->ccolor = colortbl[0];
+	if(!strcmp(c, "RED")) cons->ccolor = colortbl[1];
+	if(!strcmp(c, "GREEN")) cons->ccolor = colortbl[2];
+	if(!strcmp(c, "YELLOW")) cons->ccolor = colortbl[3];
+	if(!strcmp(c, "BLUE")) cons->ccolor = colortbl[4];
+	if(!strcmp(c, "MAGENTA")) cons->ccolor = colortbl[5];
+	if(!strcmp(c, "CYAN")) cons->ccolor = colortbl[6];
+	if(!strcmp(c, "WHITE")) cons->ccolor = colortbl[7];
+}
+
 int cmd_app(struct CONSOLE *cons, char *cmdline)
 {
 	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
@@ -365,6 +590,7 @@ int cmd_app(struct CONSOLE *cons, char *cmdline)
 	struct TASK *task = task_now();
 	struct SHTCTL *shtctl;
 	struct SHEET *sht;
+	struct color black = {0x00, 0x00, 0x00, 0xff}, white = {0xff, 0xff, 0xff, 0xff};
 	char name[18], *p, *q;
 	int i, segsiz, datsiz, esp, dathrb, appsiz;
 
@@ -410,6 +636,9 @@ int cmd_app(struct CONSOLE *cons, char *cmdline)
 
 			start_app(0x1b, 0 * 8 + 4, esp, 1 * 8 + 4, &(task->tss.esp0));
 
+			cons->ccolor = white;
+			cons->bcolor = black;
+
 			shtctl = (struct SHTCTL *)*((int *)0x0fe4);
 			for(i = 0; i < MAX_SHEETS; i++){
 				sht = &(shtctl->sheets0[i]);
@@ -439,8 +668,6 @@ memory_error:
 }
 
 void hrb_api_linewin(struct SHEET *sht, int x0, int y0, int x1, int y1, struct color c);
-
-extern struct localtime lt;
 
 struct ret
 {
@@ -478,7 +705,8 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 		sheet_setbuf(sht, (char *)ebx + ds_base, esi, edi);
 		make_window(sht, (char *)(ecx + ds_base), 0, 0, (char)eax);
 		sheet_slide(sht, (shtctl->xsize - esi) / 2, (shtctl->ysize - edi) / 2);
-		sheet_updown(sht, shtctl->top);
+		sheet_updown(sht, shtctl->top, 1);
+
 		reg[7] = (int)sht;
 	}
 	if(edx == 6){
@@ -514,7 +742,8 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 	}
 	if(edx == 12){
 		sht = (struct SHEET *)ebx;
-		sheet_refresh(sht, eax, ecx, esi, edi);
+		sheet_refreshmap(sht->ctl, sht->vx0 + eax, sht->vy0 + ecx, sht->vx0 + esi, sht->vy0 + edi, 0);
+		sheet_refreshsub(sht->ctl, sht->vx0 + eax, sht->vy0 + ecx, sht->vx0 + esi, sht->vy0 + edi, 0, shtctl->top);
 	}
 	if(edx == 13){
 		sht = (struct SHEET *)(ebx & 0xfffffffe);
@@ -697,7 +926,14 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 			r->v0 = (short)sht->bxsize;
 			r->v1 = (short)sht->bysize;
 		}
+		if(eax == 1){
+			struct ret *r = (struct ret *)(esi + ds_base);
+			r->v0 = (short)sht->vx0;
+			r->v1 = (short)sht->vy0;
+		}
 	}
+	/* exec application */
+	if(edx == 32);
 
 	return 0;
 }
@@ -736,4 +972,24 @@ void hrb_api_linewin(struct SHEET *sht, int x0, int y0, int x1, int y1, struct c
 		x += dx;
 		y += dy;
 	}
+}
+
+void close_constask(struct TASK *task)
+{
+	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
+	task_sleep(task);
+	memman_free_4k(memman, task->cons_stack, 64 * 1024);
+	memman_free_4k(memman, (int)task->buf.buf, 128 * 4);
+	task->flags = 0;
+	return;
+}
+
+void close_console(struct SHEET *sht)
+{
+	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
+	struct TASK *task = sht->task;
+	memman_free_4k(memman, (int)sht->buf, 256 * 165 * 4);
+	sheet_free(sht);
+	close_constask(task);
+	return;
 }
