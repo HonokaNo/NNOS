@@ -1,23 +1,6 @@
 memo:
 	MALLOCには取得するメモリ量+12kを指定する必要がある
 
-command list:
-
-	mem
-		メモリ総合量、メモリ使用可能量を表示
-
-	cls | clean
-		画面に出力された文字列をクリアします
-
-	neofetch
-		環境の表示を行います。
-
-	dir | ls
-		存在するすべてのファイルを表示します。
-
-	type | cat
-		ファイルの内容を出力します。
-
 API list:
 
 	1.putchar
@@ -106,6 +89,8 @@ API list:
 		ecx:y0
 		esi:x1
 		edi:y1
+
+		memo:透明な部分のあるウィンドウでは必ずこの関数を呼び出してください
 
 	13.draw line
 		edx:13
@@ -219,8 +204,11 @@ API list:
 
 	31:get window data
 		edx:31
-		eax:mode 0=window size
+		eax:mode 0=window size 1=window location
 		ecx:return struct
+			mode = 0 : v0 = sheet width v1 = sheet height
+			mode = 1 : v0 = sheet x v1 = sheet y
+	32:exec command
 
 (warn1):
 	(warn1)がついている関数では描画ごとにrefreshされます。

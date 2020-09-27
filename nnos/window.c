@@ -4,19 +4,19 @@
 void make_wtitle(struct SHEET *sht, char *title, char act, char bs, char resize)
 {
 	static char closebtn[14][16] = {
-		"OOOOOOOOOOOOOOO@",
-		"OQQQQQQQQQQQQQ$@",
-		"OQQQQQQQQQQQQQ$@",
-		"OQQQ@@QQQQ@@QQ$@",
-		"OQQQQ@@QQ@@QQQ$@",
-		"OQQQQQ@@@@QQQQ$@",
-		"OQQQQQQ@@QQQQQ$@",
-		"OQQQQQ@@@@QQQQ$@",
-		"OQQQQ@@QQ@@QQQ$@",
-		"OQQQ@@QQQQ@@QQ$@",
-		"OQQQQQQQQQQQQQ$@",
-		"OQQQQQQQQQQQQQ$@",
-		"O$$$$$$$$$$$$$$@",
+		"rrrrrrrrrrrrrrr@",
+		"rRRRRRRRRRRRRRr@",
+		"rRRRRRRRRRRRRRr@",
+		"rRRR@@RRRR@@RRr@",
+		"rRRRR@@RR@@RRRr@",
+		"rRRRRR@@@@RRRRr@",
+		"rRRRRRR@@RRRRRr@",
+		"rRRRRR@@@@RRRRr@",
+		"rRRRR@@RR@@RRRr@",
+		"rRRR@@RRRR@@RRr@",
+		"rRRRRRRRRRRRRRr@",
+		"rRRRRRRRRRRRRRr@",
+		"rrrrrrrrrrrrrrr@",
 		"@@@@@@@@@@@@@@@@"
 	};
 	static char sizebtn[14][16] = {
@@ -57,9 +57,12 @@ void make_wtitle(struct SHEET *sht, char *title, char act, char bs, char resize)
 	struct color c, tc, tbc;
 	struct color      white = {0xff, 0xff, 0xff, 0xff};
 	struct color      black = {0x00, 0x00, 0x00, 0xff};
+	struct color  light_red = {0xff, 0x00, 0x00, 0xff};
+	struct color   dark_red = {0x66, 0x00, 0x00, 0xff};
 	struct color  dark_blue = {0x00, 0x00, 0x84, 0xff};
 	struct color light_gray = {0xc6, 0xc6, 0xc6, 0xff};
 	struct color  dark_gray = {0x84, 0x84, 0x84, 0xff};
+	struct color  invisible = {0x00, 0x00, 0x00, 0x00};
 
 	if(act != 0){
 		tc = white;
@@ -75,8 +78,8 @@ void make_wtitle(struct SHEET *sht, char *title, char act, char bs, char resize)
 		for(x = 0; x < 16; x++){
 			b = closebtn[y][x];
 			if(b == '@') c = black;
-			else if(b == '$') c = dark_gray;
-			else if(b == 'Q') c = light_gray;
+			else if(b == 'R') c = light_red;
+			else if(b == 'r') c = dark_red;
 			else c = white;
 			putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), (sht->bxsize - 21 + x), (5 + y), c);
 		}
@@ -111,6 +114,18 @@ void make_wtitle(struct SHEET *sht, char *title, char act, char bs, char resize)
 
 	putfontstr(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), 24, 4, tc, title);
 
+	putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht),               0,               0, invisible);
+	putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht),               1,               0, invisible);
+	putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht),               2,               0, invisible);
+	putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht),               0,               1, invisible);
+	putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht),               0,               2, invisible);
+
+	putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), sht->bxsize - 1,               0, invisible);
+	putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), sht->bxsize - 2,               0, invisible);
+	putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), sht->bxsize - 3,               0, invisible);
+	putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), sht->bxsize - 1,               1, invisible);
+	putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), sht->bxsize - 1,               2, invisible);
+
 	sht->title = title;
 
 	return;
@@ -123,6 +138,7 @@ void make_window(struct SHEET *sht, char *title, char act, char bs, char resize)
 	struct color light_gray = {0xc6, 0xc6, 0xc6, 0xff};
 	struct color  dark_gray = {0x84, 0x84, 0x84, 0xff};
 	struct color  dark_blue = {0x00, 0x00, 0x84, 0xff};
+	struct color  invisible = {0x00, 0x00, 0x00, 0x00};
 
 	boxfill(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), light_gray,               0,               0, sht->bxsize - 1,               0);
 	boxfill(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht),      white,               1,               1, sht->bxsize - 2,               1);
@@ -134,6 +150,19 @@ void make_window(struct SHEET *sht, char *title, char act, char bs, char resize)
 	boxfill(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht),  dark_blue,               3,               3, sht->bxsize - 4,              20);
 	boxfill(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht),  dark_gray,               1, sht->bysize - 2, sht->bxsize - 2, sht->bysize - 2);
 	boxfill(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht),      black,               0, sht->bysize - 1, sht->bxsize - 1, sht->bysize - 1);
+
+	putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht),               0, sht->bysize - 1, invisible);
+	putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht),               1, sht->bysize - 1, invisible);
+	putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht),               2, sht->bysize - 1, invisible);
+	putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht),               0, sht->bysize - 2, invisible);
+	putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht),               0, sht->bysize - 3, invisible);
+
+	putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), sht->bxsize - 1, sht->bysize - 1, invisible);
+	putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), sht->bxsize - 2, sht->bysize - 1, invisible);
+	putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), sht->bxsize - 3, sht->bysize - 1, invisible);
+	putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), sht->bxsize - 1, sht->bysize - 2, invisible);
+	putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), sht->bxsize - 1, sht->bysize - 3, invisible);
+
 	make_wtitle(sht, title, act, bs, resize);
 
 	return;
@@ -267,9 +296,8 @@ struct TASK *open_constask(struct SHEET *sht, unsigned int memtotal, int *fat)
 	task->tss.gs = 1 * 8;
 	*((int *)(task->tss.esp + 4)) = (int)sht;
 	*((int *)(task->tss.esp + 8)) = memtotal;
-	task_run(task, 2, 2);
 	buffer_init(&task->buf, 128, task);
-	task->fat = fat;
+	task_run(task, 2, 2);
 
 	return task;
 }
@@ -290,22 +318,12 @@ struct SHEET *open_console(struct SHTCTL *shtctl, unsigned int memtotal, int *fa
 	return sht;
 }
 
-void close_constask(struct TASK *task)
+void window_resize(struct SHEET *sht, int xsize, int ysize, char active)
 {
 	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
-	task_sleep(task);
-	memman_free_4k(memman, task->cons_stack, 64 * 1024);
-	memman_free_4k(memman, (int)task->buf.buf, 128 * 4);
-	task->flags = 0;
-	return;
-}
 
-void close_console(struct SHEET *sht)
-{
-	struct MEMMAN *memman = (struct MEMMAN *)MEMMAN_ADDR;
-	struct TASK *task = sht->task;
-	memman_free_4k(memman, (int)sht->buf, 256 * 165 * 4);
-	sheet_free(sht);
-	close_constask(task);
-	return;
+	memman_free_4k(memman, (int)sht->buf, sht->bxsize * sht->bysize * 4);
+	char *buf2 = (unsigned char *)memman_alloc_4k(memman, xsize * ysize * 4);
+	sheet_resetbuf(sht, buf2, xsize, ysize);
+	make_window(sht, sht->title, active, 0, 1);
 }

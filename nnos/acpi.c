@@ -107,8 +107,9 @@ struct DSDT
 /* no return */
 void acpi_hlt(struct BOOTINFO *binfo)
 {
-	int l, len, *ibuf;
-	char *facp = 0, *buf, s[5], *_s5_ = 0;
+	int l, len;
+	char *facp = 0, *buf, s[5];
+	unsigned *_s5_ = 0;
 
 	/* ACPI実装確認 */
 	if(binfo->acpi != 0){
@@ -235,10 +236,9 @@ void acpi_hlt(struct BOOTINFO *binfo)
 				}
 			}
 		}
+		/* とりあえず待機 */
+		for(l = 0; l < 999999999; l++);
 	}
-
-	/* とりあえず待機 */
-	for(l = 0; l < 999999999; l++);
 
 	return;
 }

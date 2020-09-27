@@ -322,12 +322,12 @@ char col2pal(struct color c)
 
 void putPixel8(char *vram, int scline, int x, int y, struct color c)
 {
-	vram[y * scline + x] = rgb2pal(c.r, c.g, c.b, x, y);
+	vram[y * scline + x] = col2pal(c);//rgb2pal(c.r, c.g, c.b, x, y);
 }
 
 void putPixel16(char *vram, int scline, int x, int y, struct color c)
 {
-	short *p = &vram[y * scline + x * 16 / 8];
+	short *p = (short *)&vram[y * scline + x * 16 / 8];
 	short r = ((c.r >> 3) << 11) & 0xf800;
 	short g = ((c.g >> 2) << 5) & 0x07e0;
 	short b = (c.b >> 3) & 0x001f;
@@ -455,27 +455,27 @@ void init_mouse_cursor(struct SHEET *sht)
 	int x, y;
 
 	static char cursor[16][16] = {
-		"**************..",
-		"*OOOOOOOOOOO*...",
-		"*OOOOOOOOOO*....",
+		"*...............",
+		"**..............",
+		"*O*.............",
+		"*OO*............",
+		"*OOO*...........",
+		"*OOOO*..........",
+		"*OOOOO*.........",
+		"*OOOOOO*........",
+		"*OOOOOOO*.......",
+		"*OOOOOOOO*......",
 		"*OOOOOOOOO*.....",
-		"*OOOOOOOO*......",
-		"*OOOOOOO*.......",
-		"*OOOOOOO*.......",
-		"*OOOOOOOO*......",
-		"*OOOO**OOO*.....",
-		"*OOO*..*OOO*....",
-		"*OO*....*OOO*...",
-		"*O*......*OOO*..",
-		"**........*OOO*.",
-		"*..........*OOO*",
-		"............*OO*",
-		".............***"
+		"*OOOOOOOOO*.....",
+		"*OOOOOOO**......",
+		"*OOOOO**........",
+		"*OOO**..........",
+		"****............"
 	};
 
 	struct color black = {0x00, 0x00, 0x00, 0xff};
 	struct color white = {0xff, 0xff, 0xff, 0xff};
-	struct color back = {0x00, 0x84, 0x84, 0x00};
+	struct color back = {0x00, 0x00, 0x00, 0x00};
 
 	for(y = 0; y < 16; y++){
 		for(x = 0; x < 16; x++){
@@ -484,6 +484,8 @@ void init_mouse_cursor(struct SHEET *sht)
 			if(cursor[y][x] == '.') putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), x, y, back);
 		}
 	}
+
+	printlog("char %02X", cursor[1][10]);
 	return;
 }
 

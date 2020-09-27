@@ -11,8 +11,8 @@ DEL  = del
 endif
 
 # 背景として使うbmp/jpegファイルのパス
-# 画像サイズは 横幅 x (縦幅 - 26) である必要がある
-BACKGROUND = background/Gochiusa.jpg
+# 画像サイズは 横幅 x (縦幅 - 28) である必要がある
+BACKGROUND = background/fujisan_.jpg
 
 # 以下変更が必要な領域
 

@@ -11,6 +11,8 @@ void HariMain(void)
 	api_boxfilwin(win, 115, 50, 149, 69, &invisible);
 	api_boxfilwin(win,  50, 30,  99, 49, &invisible);
 
+	api_refreshwin(win, 0, 0, 150, 70);
+
 	for(;;){
 		if(api_getkey(1) == 0x0a) break;
 	}

@@ -5,6 +5,7 @@ void io_sti(void);
 void io_stihlt(void);
 int io_in8(int port);
 void io_out8(int port, int data);
+void io_out16(int port, int data);
 int io_load_eflags(void);
 void io_store_eflags(int eflags);
 void load_gdtr(int limit, int addr);
@@ -202,7 +203,7 @@ int memman_free_4k(struct MEMMAN *man, unsigned int addr, unsigned int size);
 #define PORT_KEYDAT		0x0060
 #define PORT_KEYCMD		0x0064
 
-#define MAX_SHEETS	160
+#define MAX_SHEETS	200
 
 struct SHEET
 {
@@ -231,8 +232,9 @@ struct SHEET *sheet_alloc(struct SHTCTL *ctl);
 void sheet_resetbuf(struct SHEET *sht, unsigned char *buf, int xsize, int ysize);
 /* 最初にウィンドウを作成するとき使用 最大化していないときのサイズを保存 */
 void sheet_setbuf(struct SHEET *sht, unsigned char *buf, int xsize, int ysize);
-void sheet_updown(struct SHEET *sht, int height);
+void sheet_updown(struct SHEET *sht, int height, char refresh);
 void sheet_refresh(struct SHEET *sht, int bx0, int by0, int bx1, int by1);
+void sheet_refreshmap(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, int h0);
 void sheet_refreshsub(struct SHTCTL *ctl, int vx0, int vy0, int vx1, int vy1, int h0, int h1);
 void sheet_slide(struct SHEET *sht, int vx0, int vy0);
 void sheet_free(struct SHEET *sht);
@@ -334,9 +336,11 @@ void task_sleep(struct TASK *task);
 struct CONSOLE
 {
 	struct SHEET *sht;
-	int cur_x, cur_y;
+	int cur_x, cur_y, start_y;
 	struct color cur_c;
 	struct TIMER *timer;
+	struct color ccolor;
+	struct color bcolor;
 };
 
 struct FILEHANDLE
@@ -355,14 +359,21 @@ void cons_putstr1(struct CONSOLE *cons, char *s, int l);
 void cons_runcmd(char *cmdline, struct CONSOLE *cons, unsigned memtotal);
 void cmd_mem(struct CONSOLE *cons, unsigned int memtotal);
 void cmd_cls(struct CONSOLE *cons);
-void cmd_neofetch(struct CONSOLE *cons);
+void cmd_neofetch(struct CONSOLE *cons, unsigned int memtotal);
 void cmd_dir(struct CONSOLE *cons);
 void cmd_exit(struct CONSOLE *cons);
 void cmd_start(struct CONSOLE *cons, char *cmdline, int memtotal);
 void cmd_ncst(struct CONSOLE *cons, char *cmdline, int memtotal);
 void cmd_langmode(struct CONSOLE *cons, char *cmdline);
+void cmd_shutdown(struct CONSOLE *cons);
+void cmd_rename(struct CONSOLE *cons, char *cmdline);
+void cmd_del(struct CONSOLE *cons, char *cmdline);
+void cmd_chgbg(struct CONSOLE *cons, char *cmdline);
+void cmd_chgfg(struct CONSOLE *cons, char *cmdline);
 int cmd_app(struct CONSOLE *cons, char *cmdline);
 int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax);
+void close_constask(struct TASK *task);
+void close_console(struct SHEET *sht);
 
 struct FILEINFO
 {
@@ -376,6 +387,7 @@ struct FILEINFO
 void file_readfat(int *fat, unsigned char *img);
 struct FILEINFO *file_search(char *name, struct FILEINFO *finfo, int max);
 char *file_loadfile2(int clustno, int *psize, int *fat);
+void file_gettime(struct FILEINFO finfo, struct localtime *lt);
 
 /* window.c */
 void make_wtitle(struct SHEET *sht, char *title, char act, char bs, char resize);
@@ -385,13 +397,11 @@ void putfontstr_sht_ref(struct SHEET *sht, int x, int y, struct color c, struct 
 void make_textbox(struct SHEET *sht, int x0, int y0, int sx, int sy, struct color c);
 struct color getColorWin(struct SHEET *sht, int bx, int by);
 void change_wtitle(struct SHEET *sht, char act);
-void window_resize(struct SHEET *sht, int nx, int ny);
 void keywin_off(struct SHEET *key_win);
 void keywin_on(struct SHEET *key_win);
 struct TASK *open_constask(struct SHEET *sht, unsigned int memtotal, int *fat);
 struct SHEET *open_console(struct SHTCTL *shtctl, unsigned int memtotal, int *fat);
-void close_constask(struct TASK *task);
-void close_console(struct SHEET *sht);
+void window_resize(struct SHEET *sht, int xsize, int ysize, char active);
 
 /* pc2.c */
 void wait_KBC_sendready(void);
