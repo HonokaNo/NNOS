@@ -3,9 +3,9 @@ include ../configure.txt
 default :
 	$(MAKE) $(APP).hrb
 
-$(APP).bim : $(APP).obj $(APILIBPATH)nnlib.lib ../stdlib/printf.obj Makefile ../app_make.txt
+$(APP).bim : $(APP).obj $(APILIBPATH)nnlib.lib ../stdlib/printf.obj ../stdlib/vsprintf.obj Makefile ../app_make.txt
 	$(OBJ2BIM) @$(RULEFILE) out:$(APP).bim map:$(APP).map stack:$(STACK) \
-		$(APP).obj $(APILIBPATH)nnlib.lib ../stdlib/printf.obj
+		$(APP).obj $(APILIBPATH)nnlib.lib ../stdlib/printf.obj ../stdlib/vsprintf.obj
 
 nnos.img : ../nnos/ipl.bin ../nnos/nnos.sys $(APP).hrb \
 		Makefile ../app_make.txt

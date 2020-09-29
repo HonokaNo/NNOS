@@ -109,7 +109,7 @@ void acpi_hlt(struct BOOTINFO *binfo)
 {
 	int l, len;
 	char *facp = 0, *buf, s[5];
-	unsigned *_s5_ = 0;
+	unsigned char *_s5_ = 0;
 
 	/* ACPI実装確認 */
 	if(binfo->acpi != 0){
@@ -138,16 +138,12 @@ void acpi_hlt(struct BOOTINFO *binfo)
 			if(!strncmp((char *)dsdt, "DSDT", 4)){
 				len = (dsdt->length - 36);
 
-				printlog("DSDT:%08X\n", dsdt);
-				printlog("DSDT length:%d\n", dsdt->length);
-
 				/* データを表すには最低でも11バイトは必要 */
 				for(l = 0; l < len; l++){
 					memcpy(s, &dsdt->definition_block[l], 4);
 					s[4] = 0;
 					if(!strncmp(s, "_S5_", 4)){
-						printlog("_s5_\n");
-						_s5_ = &dsdt->definition_block[l];
+						_s5_ = (char *)&dsdt->definition_block[l];
 						break;
 					}
 				}
@@ -156,14 +152,10 @@ void acpi_hlt(struct BOOTINFO *binfo)
 					/* skip "_S5_" */
 					_s5_ += 4;
 
-					for(l = 0; l < 18; l++){
-						printlog("data:%02X\n", _s5_[l]);
-					}
-
 					/* どちらも1-255 */
 					char s5_len = _s5_[1];
 					char s5_elements = _s5_[2];
-					char pm1a_set, pm1b_set;
+					char pm1a_set = 0, pm1b_set = 0;
 
 					/* すべて定数オブジェクトで1バイトずつ格納 */
 					if(s5_len == 6 && s5_elements == 4){
@@ -236,8 +228,6 @@ void acpi_hlt(struct BOOTINFO *binfo)
 				}
 			}
 		}
-		/* とりあえず待機 */
-		for(l = 0; l < 999999999; l++);
 	}
 
 	return;

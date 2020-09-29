@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include "d_stdio.h"
 #include "nnos.h"
 
 #define INVALID		-0x7fffffff

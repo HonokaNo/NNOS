@@ -1,5 +1,5 @@
 APP    = noodle
-STACK  = 1k
-MALLOC = 42k
+STACK  = 31k
+MALLOC = 0k
 
 include ../app_make.txt

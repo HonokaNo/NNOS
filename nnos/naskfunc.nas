@@ -129,13 +129,6 @@ mts_fin:
 		pop		edi
 		ret
 
-_wait10:
-		push	cx
-		mov		cx,10
-		rep		nop
-		pop		cx
-		ret
-
 _farjmp:		; void farjmp(int eip, int cs);
 		jmp		far [esp+4]
 		ret
@@ -151,6 +144,7 @@ _start_app:		; void start_app(int eip, int cs, int esp, int ds, int *tss_esp0);
 		mov		edx,[esp+44]
 		mov		ebx,[esp+48]
 		mov		ebp,[esp+52]
+		xchg	bx,bx
 		mov		[ebp],esp
 		mov		[ebp+4],ss
 		mov		es,bx

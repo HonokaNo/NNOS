@@ -1,8 +1,7 @@
+#include <string.h>
 #include "nnos.h"
-#include "d_stdio.h"
 
 int sprintf(char *s, char *format, ...);
-int strlen(char *s);
 
 void HariMain(void)
 {

@@ -129,6 +129,7 @@ void console_task(struct SHEET *sht, unsigned int memtotal)
 
 void cons_putchar(struct CONSOLE *cons, int chr, char move)
 {
+	printlog("dat:%d\n", chr);
 	char s[2];
 
 	s[0] = chr;
@@ -226,22 +227,19 @@ struct color colortbl[8] = {
 void cons_putstr0(struct CONSOLE *cons, char *s)
 {
 	for(; *s != 0; s++){
-		/* escape */
-		if(*s == 0x1b){
-			/* ansi escape */
-			if(s[1] == '['){
-				/* change back/fore ground color */
-				if(s[4] == 'm'){
-					if('0' <= s[3] && s[3] <= '7'){
-						if(s[2] == '3'){
-							cons->ccolor = colortbl[s[3] - '0'];
+		/* ansi escape */
+		if(*s == 0x1b && s[1] == '['){
+			/* change back/fore ground color */
+			if(s[4] == 'm'){
+				if('0' <= s[3] && s[3] <= '7'){
+					if(s[2] == '3'){
+						cons->ccolor = colortbl[s[3] - '0'];
 
-							s += 5;
-						}else if(s[2] == '4'){
-							cons->bcolor = colortbl[s[3] - '0'];
+						s += 5;
+					}else if(s[2] == '4'){
+						cons->bcolor = colortbl[s[3] - '0'];
 
-							s += 5;
-						}
+						s += 5;
 					}
 				}
 			}
@@ -257,22 +255,19 @@ void cons_putstr1(struct CONSOLE *cons, char *s, int l)
 
 	for(i = 0; i < l; i++){
 		for(; *s != 0; s++){
-			/* escape */
-			if(*s == 0x1b){
-				/* ansi escape */
-				if(s[1] == '['){
-					/* change back/fore ground color */
-					if(s[4] == 'm'){
-						if('0' <= s[3] && s[3] <= '7'){
-							if(s[2] == '3'){
-								cons->ccolor = colortbl[s[3] - '0'];
+			/* ansi escape */
+ 			if(*s == 0x1b && s[1] == '['){
+				/* change back/fore ground color */
+				if(s[4] == 'm'){
+					if('0' <= s[3] && s[3] <= '7'){
+						if(s[2] == '3'){
+							cons->ccolor = colortbl[s[3] - '0'];
 
-								i += 5;
-							}else if(s[2] == '4'){
-								cons->bcolor = colortbl[s[3] - '0'];
+							i += 5;
+						}else if(s[2] == '4'){
+							cons->bcolor = colortbl[s[3] - '0'];
 
-								i += 5;
-							}
+							i += 5;
 						}
 					}
 				}
@@ -590,7 +585,6 @@ int cmd_app(struct CONSOLE *cons, char *cmdline)
 	struct TASK *task = task_now();
 	struct SHTCTL *shtctl;
 	struct SHEET *sht;
-	struct color black = {0x00, 0x00, 0x00, 0xff}, white = {0xff, 0xff, 0xff, 0xff};
 	char name[18], *p, *q;
 	int i, segsiz, datsiz, esp, dathrb, appsiz;
 
@@ -636,8 +630,8 @@ int cmd_app(struct CONSOLE *cons, char *cmdline)
 
 			start_app(0x1b, 0 * 8 + 4, esp, 1 * 8 + 4, &(task->tss.esp0));
 
-			cons->ccolor = white;
-			cons->bcolor = black;
+//			cons->ccolor = white;
+//			cons->bcolor = black;
 
 			shtctl = (struct SHTCTL *)*((int *)0x0fe4);
 			for(i = 0; i < MAX_SHEETS; i++){
