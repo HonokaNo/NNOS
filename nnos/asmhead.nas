@@ -7,7 +7,7 @@
 ;   0x115  800x 600 8:8:8 color
 ;   0x118 1024x 768 8:8:8 color
 ;   0x11b 1280x1024 8:8:8 color
-VIDEOMODE	equ		0x11b
+VIDEOMODE	equ		0x117
 
 BOTPAK	equ		0x00280000
 DSKCAC	equ		0x00100000
