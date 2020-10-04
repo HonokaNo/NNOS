@@ -57,6 +57,7 @@ run :
 	$(MAKE) -C $(TOOLPATH)qemu
 
 full :
+	$(MAKE) -C stdlib
 	$(MAKE) -C nnos
 	$(MAKE) -C library
 	$(MAKE) -C star1

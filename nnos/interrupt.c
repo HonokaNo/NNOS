@@ -1,5 +1,5 @@
-#include "bootpack.h"
 #include <stdio.h>
+#include "bootpack.h"
 
 extern struct BUFFER buffer;
 
@@ -63,6 +63,8 @@ int *inthandler0d(int *esp)
 	char s[30];
 	cons_putstr0(cons, "\nINT 0d :\n General Protected Exception.\n");
 	sprintf(s, "EIP = %08X\n", esp[11]);
+	cons_putstr0(cons, s);
+	sprintf(s, "CS = %04X\n", esp[12]);
 	cons_putstr0(cons, s);
 	return &(task->tss.esp0);
 }

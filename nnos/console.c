@@ -1,6 +1,6 @@
-#include "bootpack.h"
 #include <stdio.h>
 #include <string.h>
+#include "bootpack.h"
 
 struct BUFFER timer_buf;
 
@@ -129,7 +129,6 @@ void console_task(struct SHEET *sht, unsigned int memtotal)
 
 void cons_putchar(struct CONSOLE *cons, int chr, char move)
 {
-	printlog("dat:%d\n", chr);
 	char s[2];
 
 	s[0] = chr;
@@ -149,6 +148,7 @@ void cons_putchar(struct CONSOLE *cons, int chr, char move)
 	}else if(s[0] == 0x0d);
 	else{
 		if(cons->sht != 0) putfontstr_sht_ref(cons->sht, cons->cur_x, cons->cur_y, cons->ccolor, cons->bcolor, s);
+//		putfontstr_sht_ref(cons->sht, cons->cur_x, cons->cur_y, cons->ccolor, cons->bcolor, s);
 		if(move){
 			cons->cur_x += 8;
 			if(cons->cur_x == 8 + (cons->sht->bxsize - 16)) cons_newline(cons);
@@ -254,21 +254,19 @@ void cons_putstr1(struct CONSOLE *cons, char *s, int l)
 	int i;
 
 	for(i = 0; i < l; i++){
-		for(; *s != 0; s++){
-			/* ansi escape */
- 			if(*s == 0x1b && s[1] == '['){
-				/* change back/fore ground color */
-				if(s[4] == 'm'){
-					if('0' <= s[3] && s[3] <= '7'){
-						if(s[2] == '3'){
-							cons->ccolor = colortbl[s[3] - '0'];
+		/* ansi escape */
+			if(*s == 0x1b && s[1] == '['){
+			/* change back/fore ground color */
+			if(s[4] == 'm'){
+				if('0' <= s[3] && s[3] <= '7'){
+					if(s[2] == '3'){
+						cons->ccolor = colortbl[s[3] - '0'];
 
-							i += 5;
-						}else if(s[2] == '4'){
-							cons->bcolor = colortbl[s[3] - '0'];
+						i += 5;
+					}else if(s[2] == '4'){
+						cons->bcolor = colortbl[s[3] - '0'];
 
-							i += 5;
-						}
+						i += 5;
 					}
 				}
 			}
@@ -629,9 +627,6 @@ int cmd_app(struct CONSOLE *cons, char *cmdline)
 			for(i = 0; i < datsiz; i++) q[esp + i] = p[dathrb + i];
 
 			start_app(0x1b, 0 * 8 + 4, esp, 1 * 8 + 4, &(task->tss.esp0));
-
-//			cons->ccolor = white;
-//			cons->bcolor = black;
 
 			shtctl = (struct SHTCTL *)*((int *)0x0fe4);
 			for(i = 0; i < MAX_SHEETS; i++){
