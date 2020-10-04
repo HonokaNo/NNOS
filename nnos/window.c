@@ -1,5 +1,5 @@
-#include "bootpack.h"
 #include <string.h>
+#include "bootpack.h"
 
 void make_wtitle(struct SHEET *sht, char *title, char act, char bs, char resize)
 {
@@ -297,6 +297,7 @@ struct TASK *open_constask(struct SHEET *sht, unsigned int memtotal, int *fat)
 	*((int *)(task->tss.esp + 4)) = (int)sht;
 	*((int *)(task->tss.esp + 8)) = memtotal;
 	buffer_init(&task->buf, 128, task);
+	task->fat = fat;
 	task_run(task, 2, 2);
 
 	return task;
@@ -326,4 +327,6 @@ void window_resize(struct SHEET *sht, int xsize, int ysize, char active)
 	char *buf2 = (unsigned char *)memman_alloc_4k(memman, xsize * ysize * 4);
 	sheet_resetbuf(sht, buf2, xsize, ysize);
 	make_window(sht, sht->title, active, 0, 1);
+
+	return;
 }

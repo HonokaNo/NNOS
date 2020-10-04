@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <stdarg.h>
 #include "nnos.h"
 
 int printf(const char *format, ...)
