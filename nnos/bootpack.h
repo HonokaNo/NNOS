@@ -28,7 +28,7 @@ void asm_inthandler0c(void);
 void asm_inthandler0d(void);
 void asm_inthandler20(void);
 void asm_inthandler21(void);
-void asm_inthandler27(void);
+void asm_inthandler26(void);
 void asm_inthandler28(void);
 void asm_inthandler2c(void);
 
@@ -297,6 +297,7 @@ struct TASK
 	int level, priority;
 	struct TSS32 tss;
 	struct BUFFER buf;
+	struct BUFFER timer_buf;
 	struct SEGMENT_DESCRIPTOR ldt[2];
 	struct CONSOLE *cons;
 	int ds_base, cons_stack;
@@ -356,7 +357,7 @@ void cons_putchar(struct CONSOLE *cons, int chr, char move);
 void cons_newline(struct CONSOLE *cons);
 void cons_putstr0(struct CONSOLE *cons, char *s);
 void cons_putstr1(struct CONSOLE *cons, char *s, int l);
-void cons_runcmd(char *cmdline, struct CONSOLE *cons, unsigned memtotal);
+void cons_runcmd(char *cmdline, struct CONSOLE *cons, unsigned memtotal, int *fat);
 void cmd_mem(struct CONSOLE *cons, unsigned int memtotal);
 void cmd_cls(struct CONSOLE *cons);
 void cmd_neofetch(struct CONSOLE *cons, unsigned int memtotal);
@@ -365,7 +366,7 @@ void cmd_exit(struct CONSOLE *cons);
 void cmd_start(struct CONSOLE *cons, char *cmdline, int memtotal);
 void cmd_ncst(struct CONSOLE *cons, char *cmdline, int memtotal);
 void cmd_langmode(struct CONSOLE *cons, char *cmdline);
-void cmd_shutdown(struct CONSOLE *cons);
+void cmd_shutdown(struct CONSOLE *cons, int *fat);
 void cmd_rename(struct CONSOLE *cons, char *cmdline);
 void cmd_del(struct CONSOLE *cons, char *cmdline);
 void cmd_chgbg(struct CONSOLE *cons, char *cmdline);
@@ -384,7 +385,14 @@ struct FILEINFO
 };
 
 /* file.c */
+#define FAT_UNUSED		0x000	/* 未使用クラスタ */
+#define FAT_RESERVE		0x001	/* 予約領域 */
+#define FAT_CANTUSED	0xff7	/* 不良なので使わせないクラスタ */
+#define FAT_USING		0xfff	/* FATチェーンの終端 */
+
 void file_readfat(int *fat, unsigned char *img);
+void file_writefat(int *fat, unsigned char *img);
+int fat_findfree(int *fat);
 struct FILEINFO *file_search(char *name, struct FILEINFO *finfo, int max);
 char *file_loadfile2(int clustno, int *psize, int *fat);
 void file_gettime(struct FILEINFO finfo, struct localtime *lt);
@@ -414,9 +422,16 @@ int tek_getsize(unsigned char *p);
 int tek_decomp(unsigned char *p, char *q, int size);
 
 /* acpi.c */
-void acpi_hlt(struct BOOTINFO *binfo);
+void acpi_hlt(struct BOOTINFO *binfo, int *fat);
 
 struct rgb
 {
 	unsigned char b, g, r, t;
 };
+
+/* fdc.c */
+void fdc_init(void);
+void fdd_start_motor(void);
+void fdd_stop_motor(void);
+char fdc_seek(char cylinder, char head);
+char fdc_write(int addr, char sector, char cylinder, char head);

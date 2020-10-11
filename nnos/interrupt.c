@@ -104,10 +104,16 @@ void inthandler21(int *esp)
 	return;
 }
 
-/* •sŠ®‘SŠ„‚è‚İ–h~ */
-void inthandler27(int *esp)
+//extern int intflg = 0;
+
+/* FDC */
+void inthandler26(int *esp)
 {
-	io_out8(PIC0_OCW2, 0x67);
+	/* Š„‚è‚İ‚É‹C‚Ã‚¢‚½‚±‚Æ‚ğFDC‚É‹³‚¦‚Ä‚ ‚°‚é */
+	io_in8(0x3f4);
+	io_out8(PIC0_OCW2, 0x66);
+
+//	intflg = 1;
 
 	return;
 }

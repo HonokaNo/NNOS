@@ -11,6 +11,28 @@ void file_readfat(int *fat, unsigned char *img)
 	return;
 }
 
+void file_writefat(int *fat, unsigned char *img)
+{
+	int i = 0, j = 0;
+
+	img[j + 0] = (fat[i + 0] & 0xff);
+	img[j + 1] = (fat[i + 0] & 0xf00 >> 8) | (fat[i + 1] & 0x00f);
+	img[j + 2] = (fat[i + 1] & 0xff0 >>4);
+
+	return;
+}
+
+int fat_findfree(int *fat)
+{
+	int l = 0;
+
+	for(; l < 2880; l++){
+		if(fat[l] == FAT_UNUSED) return l;
+	}
+
+	return -1;
+}
+
 void file_loadfile(int clustno, int size, char *buf, char *img, int *fat)
 {
 	int i;
@@ -100,14 +122,8 @@ void file_gettime(struct FILEINFO finfo, struct localtime *lt)
 	lt->y0 = (y / 100);
 	lt->y1 = (y % 100);
 
-	printlog("year:%d\n", y);
-
 	lt->month = (char)m;
-	printlog("month:%d\n", m);
-	printlog("lt->month:%d\n", lt->month);
 	lt->day = (char)d;
-	printlog("day:%d\n", d);
-	printlog("lt->day:%d\n", lt->day);
 
 	lt->hour = (char)(finfo.time >> 10);
 	lt->min = (char)(finfo.time << 6 >> 11);

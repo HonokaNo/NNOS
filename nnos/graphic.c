@@ -485,7 +485,6 @@ void init_mouse_cursor(struct SHEET *sht)
 		}
 	}
 
-	printlog("char %02X", cursor[1][10]);
 	return;
 }
 

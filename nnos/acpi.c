@@ -105,7 +105,7 @@ struct DSDT
 };
 
 /* no return */
-void acpi_hlt(struct BOOTINFO *binfo)
+void acpi_hlt(struct BOOTINFO *binfo, int *fat)
 {
 	int l, len;
 	char *facp = 0, *buf, s[5];
@@ -119,15 +119,11 @@ void acpi_hlt(struct BOOTINFO *binfo)
 
 		len = (rsdt->length - 36) / 4;
 		if(!memcmp(rsdt->signature, "RSDT", 4)){
-			printlog("RSDT header\n");
 			for(l = 0; l < len; l++){
 				buf = (char *)rsdt->entry[l];
 				memcpy(s, buf, 4);
 				s[4] = 0;
-				if(!strncmp(buf, "FACP", 4)){
-					facp = buf;
-					printlog("FADT table\n");
-				}
+				if(!strncmp(buf, "FACP", 4)) facp = buf;
 			}
 		}
 

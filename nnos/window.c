@@ -229,6 +229,7 @@ void change_wtitle(struct SHEET *sht, char act)
 	struct color light_gray = {0xc6, 0xc6, 0xc6, 0xff};
 	struct color  dark_gray = {0x84, 0x84, 0x84, 0xff};
 	struct color  dark_blue = {0x00, 0x00, 0x84, 0xff};
+	struct color  invisible = {0x00, 0x00, 0x00, 0x00};
 
 	int x, y, xsize = sht->bxsize;
 	struct color c, tc_new, tbc_new, tc_old, tbc_old;
@@ -258,7 +259,14 @@ void change_wtitle(struct SHEET *sht, char act)
 			putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht), x, y, c);
 		}
 	}
-	sheet_refresh(sht, 3, 3, xsize, 21);
+
+	putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht),               0,               0, invisible);
+	putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht),               1,               0, invisible);
+	putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht),               2,               0, invisible);
+	putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht),               0,               1, invisible);
+	putPixel(VMODE_WINDOW, sht->buf, WINDOW_SCLINE(sht),               0,               2, invisible);
+
+	sheet_refresh(sht, 0, 0, xsize, 21);
 	return;
 }
 

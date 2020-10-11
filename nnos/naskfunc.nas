@@ -19,7 +19,6 @@
 		GLOBAL	_asm_hrb_api
 		GLOBAL	_asm_end_app
 		GLOBAL	_clts, _fnsave, _frstor
-		GLOBAL	_acpi_hlt
 
 		EXTERN	_hrb_api
 
