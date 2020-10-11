@@ -5,7 +5,7 @@
 
 		GLOBAL	_api_putchar
 
-[SECTION .text]
+[SECTION .text]aaa
 
 _api_putchar:		; void api_putchar(int c);
 		mov		edx,1
