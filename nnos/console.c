@@ -664,6 +664,17 @@ struct ret
 	short v0, v1;
 };
 
+/* strcat‚ÌÀ‘•‚Å‚ÍƒoƒO‚ª‚¨‚«‚Ä‚µ‚Ü‚¤‚Ì‚Åì‚è’¼‚µ */
+char *stradd(char *s1, char *s2)
+{
+	char *s = (char *)memman_alloc_4k((struct MEMMAN *)MEMMAN_ADDR, strlen(s1) + strlen(s2) + 1);
+
+	memcpy(s, s1, strlen(s1));
+	memcpy(s + strlen(s1), s2, strlen(s2) + 1);
+
+	return s;
+}
+
 int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int eax)
 {
 	struct TASK *task = task_now();
@@ -1026,7 +1037,12 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 		}
 	}
 	/* exec application */
-	if(edx == 32);
+	if(edx == 32){
+		char *arg = (char *)(char *)(ebx + ds_base);
+
+		unsigned int memtotal = memtest(ADR_BOTPAK, 0xffffffff);
+		cmd_ncst(cons, stradd("ncst ", arg), memtotal);
+	}
 
 	return 0;
 }

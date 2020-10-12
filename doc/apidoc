@@ -196,7 +196,14 @@ API list:
 		eax:langmode 0=ASCII 1=SJIS 2=EUC-JP
 
 	29:fwrite
-		reserved
+		edx:29
+		ebx:write buffer
+		ecx:write byte num
+		eax:file buffer
+
+		return:
+
+		eax:write status 0=success not0=error
 
 	30:get time
 		edx:30
