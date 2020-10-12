@@ -1,4 +1,4 @@
-APP    = type
+APP    = append
 STACK  = 2k
 MALLOC = 0k
 

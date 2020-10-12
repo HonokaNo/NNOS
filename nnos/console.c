@@ -2,7 +2,7 @@
 #include <string.h>
 #include "bootpack.h"
 
-struct BUFFER timer_buf;
+struct BUFFER timer_buf, file_buf;
 
 extern struct localtime lt;
 
@@ -34,6 +34,7 @@ void console_task(struct SHEET *sht, unsigned int memtotal)
 	}
 
 	buffer_init(&timer_buf, 32, task);
+	buffer_init(&file_buf, 4096, 0);
 
 	for(i = 0; i < 8; i++) fhandle[i].buf = 0;
 	task->fhandle = fhandle;
@@ -668,7 +669,7 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 	struct TASK *task = task_now();
 	struct CONSOLE *cons = task->cons;
 	struct SHTCTL *shtctl = (struct SHTCTL *)*((int *)0x0fe4);
-	struct SHEET *sht;
+	struct SHEET *sht = 0;
 	struct color white = {0xff, 0xff, 0xff, 0xff};
 	struct color black = {0x00, 0x00, 0x00, 0xff};
 	struct color invisible_cursor = {0x00, 0x00, 0x00, 0x00};
@@ -854,6 +855,58 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 				fh->size = finfo->size;
 				fh->pos = 0;
 				fh->buf = file_loadfile2(finfo->clustno, &fh->size, cons->sht->task->fat);
+				fh->finfo = finfo;
+			}else if(esi == 1){
+				/* ファイル作成処理 */
+				struct FILEINFO *files = (struct FILEINFO *)(ADR_DISKIMG + 0x2600);
+
+				/* ファイル情報を書く場所を探す */
+				for(i = 0; i < 224; i++){
+					if(files[i].name[0] == 0x00) break;
+				}
+
+				if(i != 224){
+					struct FILEINFO *finfo = &files[i];
+
+					char fname[9], fext[4];
+
+					/* ファイル名をいったんすべて空白に */
+					memset(fname, ' ', 8);
+					memset(fext, ' ', 3);
+					fname[8] = 0;
+					fext[3] = 0;
+
+					char *filename = (char *)(ebx + ds_base);
+					int fnlen = 0, fextlen = 0;
+
+					/* .が来るまで(拡張子にたどり着くまで)待つ */
+					for(; filename[fnlen] != '.'; fnlen++);
+					/* 拡張子の長さをはかる */
+					for(; filename[fnlen + 1 + fextlen] != 0; fextlen++);
+
+					for(i = 0; i < strlen(filename); i++){
+						/* ファイル名を大文字に変換 */
+						if('a' <= filename[i] && filename[i] <= 'z') filename[i] -= 0x20;
+					}
+
+					memcpy(fname, filename, fnlen);
+					memcpy(fext, filename + fnlen + 1, fextlen);
+
+					memcpy(finfo->name, fname, 8);
+					memcpy(finfo->ext, fext, 3);
+					/* 空きFATを検索する */
+					finfo->clustno = fat_findfree(cons->sht->task->fat);
+					cons->sht->task->fat[finfo->clustno] = FAT_USING;
+					finfo->date = ((((lt.y0 * 100 + lt.y1) - 1980) & 0xef) << 9) | ((lt.month & 0x0f) << 5) | (lt.day & 0x1f);
+					finfo->time = ((lt.hour & 0x0f) << 11) | ((lt.min & 0x1f) << 5) | (lt.sec / 2);
+					finfo->size = 0;
+
+					reg[7] = (int)fh;
+					fh->size = finfo->size;
+					fh->pos = 0;
+					fh->buf = (char *)(ADR_DISKIMG + 0x3e00 + (finfo->clustno * 512));
+					fh->finfo = &finfo[0];
+				}
 			}
 		}
 	}
@@ -897,7 +950,58 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 	}
 	if(edx == 28) reg[7] = task->langmode;
 	/* fwrite */
-	if(edx == 29);
+	/* memo:メモリに書き込むだけならディスクバッファに書く */
+	/* ディスクに書くときはFATをもとに戻すのを忘れずに */
+	if(edx == 29){
+		struct FILEHANDLE *fh = (struct FILEHANDLE *)eax;
+
+//		int write, old = fh->finfo->clustno, fat0;
+		char *buf0 = (char *)(ebx + ds_base);
+
+		reg[7] = 0;
+
+		/* 新しくファイルに書き込む */
+		if(fh->pos == 0 && fh->size == 0){
+			reg[7] = file_write00(fh, buf0, ecx, cons->sht->task->fat);
+		}else if(fh->pos == 0 && fh->size != 0){
+			int old = fh->finfo->clustno, fat0;
+			int fat = cons->sht->task->fat[old];
+
+			while(1){
+				/* 1クラスタ0で埋めてリセット */
+				memset((char *)(ADR_DISKIMG + 0x3e00 + old * 512), 0, 512);
+
+				fat0 = fat;
+
+				if(fat0 == FAT_USING) break;
+
+				/* 次のFATを探す */
+				fat = cons->sht->task->fat[fat0];
+
+				/* FAT解放(最後の部分のFATのみ残る) */
+				cons->sht->task->fat[fat0] = FAT_UNUSED;
+				old = fat;
+			}
+
+			fh->finfo->clustno = fat0;
+			fh->size = 0;
+			fh->finfo->size = fh->size;
+			fh->buf = (char *)(ADR_DISKIMG + 0x3e00 + fh->finfo->clustno * 512);
+
+			/* ファイルを書き込む */
+			reg[7] = file_write00(fh, buf0, ecx, cons->sht->task->fat);
+		/* 追記部分を実装しようとしたらバグでうまく読み込めないので */
+		/* コメント化してそのまま置いておく */
+/*		}else if(fh->pos != 0 && fh->size != 0){
+			fh->size = fh->pos;
+			fh->finfo->size = fh->size;
+			reg[7] = file_write00(fh, buf0, ecx, cons->sht->task->fat);
+			fh->size = fh->pos + ecx;
+			fh->finfo->size = fh->size;
+			printlog("size:%d\n", fh->size);
+			printlog("fsize:%d\n", fh->finfo->size);*/
+		}
+	}
 	if(edx == 30){
 		struct localtime *time = (struct localtime *)(ebx + ds_base);
 		time->y0 = lt.y0;

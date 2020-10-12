@@ -1,3 +1,4 @@
+#include <string.h>
 #include "bootpack.h"
 
 void file_readfat(int *fat, unsigned char *img)
@@ -9,6 +10,17 @@ void file_readfat(int *fat, unsigned char *img)
 		j += 3;
 	}
 	return;
+}
+
+int fat_findfree(int *fat)
+{
+	int l = 0;
+
+	for(; l < 2880; l++){
+		if(fat[l] == 0x00) return l;
+	}
+
+	return -1;
 }
 
 void file_loadfile(int clustno, int size, char *buf, char *img, int *fat)
@@ -89,8 +101,6 @@ char *file_loadfile2(int clustno, int *psize, int *fat)
 
 void file_gettime(struct FILEINFO finfo, struct localtime *lt)
 {
-	printlog("finfo.date:%04X\n", finfo.date);
-
 	// rshiftは最上位ビットをコピーしてしまう(符号保持のため)
 	// なのでコピーされた符号を消してあげる
 	short y = ((finfo.date >> 9) & 0x7f) + 1980;
@@ -100,16 +110,44 @@ void file_gettime(struct FILEINFO finfo, struct localtime *lt)
 	lt->y0 = (y / 100);
 	lt->y1 = (y % 100);
 
-	printlog("year:%d\n", y);
-
 	lt->month = (char)m;
-	printlog("month:%d\n", m);
-	printlog("lt->month:%d\n", lt->month);
 	lt->day = (char)d;
-	printlog("day:%d\n", d);
-	printlog("lt->day:%d\n", lt->day);
 
 	lt->hour = (char)(finfo.time >> 10);
 	lt->min = (char)(finfo.time << 6 >> 11);
 	lt->sec = (char)(finfo.time & 0x0f) * 2;
+}
+
+int file_write0(struct FILEHANDLE *fh, char *buf0, int len, int *fat0)
+{
+	int write, old = fh->finfo->clustno;
+
+	/* 書き込むデータがある間繰り返す */
+	while(len > 0){
+		/* 1クラスタには収まらないので1クラスタ分だけ書く */
+		if(len > 512) write = 512;
+		else write = len;
+
+		/* バッファに書き込む */
+		memcpy(fh->buf, buf0, write);
+
+		len -= write;
+		fh->size += write;
+		fh->finfo->size += write;
+		buf0 += write;
+
+		/* 書き込むデータはなくなったので終了 */
+		if(len <= 0) break;
+
+		int fat = fat_findfree(fat0);
+		if(fat == -1) return -1;
+		else{
+			fat0[fat] = FAT_USING;
+			fat0[old] = fat;
+
+			old = fat;
+		}
+	}
+
+	return 0;
 }

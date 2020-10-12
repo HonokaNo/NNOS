@@ -30,7 +30,7 @@ void HariMain(void)
 	for(p = s; *p > ' '; p++);
 	for(; *p == ' '; p++);
 
-	i = api_fopen(p);
+	i = api_fopen(p, 0);
 	if(i == 0) error("file not found.\n");
 	fsize = api_fsize(i, 0);
 	if(fsize > 512 * 1024) error("file too large");

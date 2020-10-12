@@ -2,8 +2,6 @@
 
 void HariMain(void)
 {
-//	char s[20];
-//	sprintf(s, "0");
 	struct color white = {0xff, 0xff, 0xff, 0xff};
 	struct color black = {0x00, 0x00, 0x00, 0xff};
 

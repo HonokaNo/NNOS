@@ -7,10 +7,13 @@
 
 [SECTION .text]
 
-_api_fopen:			; int api_fopen(char *fname);
+_api_fopen:			; int api_fopen(char *fname, int create);
 		push	ebx
+		push	esi
 		mov		edx,22
-		mov		ebx,[esp+8]
+		mov		ebx,[esp+12]
+		mov		esi,[esp+16]
 		int		0x40
+		pop		esi
 		pop		ebx
 		ret

@@ -54,7 +54,7 @@ err:
 
 	/* ƒtƒ@ƒCƒ‹“Ç‚İ‚İ */
 	*r = 0;
-	i = api_fopen(q);
+	i = api_fopen(q, 0);
 	if(i == 0){
 		api_putstr0("file open error.\n");
 		api_end();
