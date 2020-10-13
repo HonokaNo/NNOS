@@ -43,7 +43,7 @@ file_error:
 	api_boxfilwin(win, 6, 86, 249, 105, &white);
 
 	/* ƒtƒ@ƒCƒ‹“Ç‚Ýž‚Ý */
-	i = api_fopen(p);
+	i = api_fopen(p, 0);
 	if(i == 0) goto file_error;
 	j = api_fsize(i, 0);
 	if(j >= 100 * 1024) j = 100 * 1024 - 1;

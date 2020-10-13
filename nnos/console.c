@@ -2,7 +2,7 @@
 #include <string.h>
 #include "bootpack.h"
 
-struct BUFFER timer_buf;
+struct BUFFER timer_buf, file_buf;
 
 extern struct localtime lt;
 
@@ -34,6 +34,7 @@ void console_task(struct SHEET *sht, unsigned int memtotal)
 	}
 
 	buffer_init(&timer_buf, 32, task);
+	buffer_init(&file_buf, 4096, 0);
 
 	for(i = 0; i < 8; i++) fhandle[i].buf = 0;
 	task->fhandle = fhandle;
@@ -871,9 +872,16 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 				fh->size = finfo->size;
 				fh->pos = 0;
 				fh->buf = file_loadfile2(finfo->clustno, &fh->size, cons->sht->task->fat);
+<<<<<<< HEAD
 			}else{
 				/* ファイル作成処理 */
 				files = (struct FILEINFO *)(ADR_DISKIMG + 0x2600);
+=======
+				fh->finfo = finfo;
+			}else if(esi == 1){
+				/* ファイル作成処理 */
+				struct FILEINFO *files = (struct FILEINFO *)(ADR_DISKIMG + 0x2600);
+>>>>>>> developer
 
 				/* ファイル情報を書く場所を探す */
 				for(i = 0; i < 224; i++){
@@ -881,8 +889,14 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 				}
 
 				if(i != 224){
+<<<<<<< HEAD
 					finfo = &files[i];
 					finfo2 = &files[i - 1];
+=======
+					struct FILEINFO *finfo = &files[i];
+
+					char fname[9], fext[4];
+>>>>>>> developer
 
 					/* ファイル名をいったんすべて空白に */
 					memset(fname, ' ', 8);
@@ -893,6 +907,7 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 					char *filename = (char *)(ebx + ds_base);
 					int fnlen = 0, fextlen = 0;
 
+<<<<<<< HEAD
 					printlog("file:%s\n", filename);
 
 					/* .が来るまで(拡張子にたどり着くまで)待つ */
@@ -900,6 +915,12 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 						for(; filename[fnlen + 1 + fextlen] != 0; fextlen++);
 
 					printlog("name:%d len ext:%d len\n", fnlen, fextlen);
+=======
+					/* .が来るまで(拡張子にたどり着くまで)待つ */
+					for(; filename[fnlen] != '.'; fnlen++);
+					/* 拡張子の長さをはかる */
+					for(; filename[fnlen + 1 + fextlen] != 0; fextlen++);
+>>>>>>> developer
 
 					for(i = 0; i < strlen(filename); i++){
 						/* ファイル名を大文字に変換 */
@@ -921,10 +942,16 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 					reg[7] = (int)fh;
 					fh->size = finfo->size;
 					fh->pos = 0;
+<<<<<<< HEAD
 					/* ファイル書き込み */
 					fh->buf = (char *)(ADR_DISKIMG + 0x3e00 + (finfo->clustno * 512));
 				/* エラー */
 				}else reg[7] = 0;
+=======
+					fh->buf = (char *)(ADR_DISKIMG + 0x3e00 + (finfo->clustno * 512));
+					fh->finfo = &finfo[0];
+				}
+>>>>>>> developer
 			}
 		}
 	}
@@ -951,6 +978,7 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 		fh = (struct FILEHANDLE *)eax;
 		for(i = 0; i < ecx; i++){
 			if(fh->pos == fh->size) break;
+			printlog("%02X\n", (char)fh->buf[fh->pos]);
 			*((char *)ebx + ds_base + i) = fh->buf[fh->pos];
 			fh->pos++;
 		}
@@ -970,6 +998,7 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 	}
 	if(edx == 28) reg[7] = task->langmode;
 	/* fwrite */
+<<<<<<< HEAD
 	if(edx == 29){
 		fh = (struct FILEHANDLE *)eax;
 		char *buf = (char *)(ebx + ds_base);
@@ -993,6 +1022,63 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 				fh->pos += ecx;
 				reg[7] = ecx;
 			}
+=======
+	/* memo:メモリに書き込むだけならディスクバッファに書く */
+	/* ディスクに書くときはFATをもとに戻すのを忘れずに */
+	if(edx == 29){
+		struct FILEHANDLE *fh = (struct FILEHANDLE *)eax;
+
+//		int write, old = fh->finfo->clustno, fat0;
+		char *buf0 = (char *)(ebx + ds_base);
+
+		/* ファイルの外を指している */
+		/* バグの原因になるので終わりにする */
+		if(fh->pos < 0 && fh->pos > fh->size) return 0;
+
+		reg[7] = 0;
+
+		/* 新しくファイルに書き込む */
+		if(fh->pos == 0 && fh->size == 0){
+			reg[7] = file_write0(fh, buf0, ecx, cons->sht->task->fat);
+		}else if(fh->pos == 0 && fh->size != 0){
+			int old = fh->finfo->clustno, fat0;
+			int fat = cons->sht->task->fat[old];
+
+			while(1){
+				/* 1クラスタ0で埋めてリセット */
+				memset((char *)(ADR_DISKIMG + 0x3e00 + old * 512), 0, 512);
+
+				fat0 = fat;
+
+				if(fat0 == FAT_USING) break;
+
+				/* 次のFATを探す */
+				fat = cons->sht->task->fat[fat0];
+
+				/* FAT解放(最後の部分のFATのみ残る) */
+				cons->sht->task->fat[fat0] = FAT_UNUSED;
+				old = fat;
+			}
+
+			fh->finfo->clustno = fat0;
+			fh->size = 0;
+			fh->finfo->size = fh->size;
+			fh->buf = (char *)(ADR_DISKIMG + 0x3e00 + fh->finfo->clustno * 512);
+
+			/* ファイルを書き込む */
+			reg[7] = file_write0(fh, buf0, ecx, cons->sht->task->fat);
+		/* 追記部分を実装しようとしたらバグでうまく読み込めないので */
+		/* コメント化してそのまま置いておく */
+		}else if(fh->pos != 0 && fh->size != 0){
+			fh->size = fh->pos;
+			fh->finfo->size = fh->size;
+			reg[7] = file_write00(fh, buf0, ecx, cons->sht->task->fat);
+			/**** ここのサイズ計算も間違いになるので直す */
+			fh->size = fh->pos;
+			fh->finfo->size = fh->size;
+//			printlog("size:%d\n", fh->size);
+//			printlog("fsize:%d\n", fh->finfo->size);
+>>>>>>> developer
 		}
 	}
 	if(edx == 30){
@@ -1022,8 +1108,11 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 	if(edx == 32){
 		char *arg = (char *)(char *)(ebx + ds_base);
 
+<<<<<<< HEAD
 		printlog("%s\n\n", arg);
 
+=======
+>>>>>>> developer
 		unsigned int memtotal = memtest(ADR_BOTPAK, 0xffffffff);
 		cmd_ncst(cons, stradd("ncst ", arg), memtotal);
 	}

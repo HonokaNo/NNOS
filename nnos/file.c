@@ -1,3 +1,4 @@
+#include <string.h>
 #include "bootpack.h"
 
 void file_readfat(int *fat, unsigned char *img)
@@ -11,6 +12,7 @@ void file_readfat(int *fat, unsigned char *img)
 	return;
 }
 
+<<<<<<< HEAD
 void file_writefat(int *fat, unsigned char *img)
 {
 	int i = 0, j = 0;
@@ -22,12 +24,18 @@ void file_writefat(int *fat, unsigned char *img)
 	return;
 }
 
+=======
+>>>>>>> developer
 int fat_findfree(int *fat)
 {
 	int l = 0;
 
 	for(; l < 2880; l++){
+<<<<<<< HEAD
 		if(fat[l] == FAT_UNUSED) return l;
+=======
+		if(fat[l] == 0x00) return l;
+>>>>>>> developer
 	}
 
 	return -1;
@@ -111,8 +119,6 @@ char *file_loadfile2(int clustno, int *psize, int *fat)
 
 void file_gettime(struct FILEINFO finfo, struct localtime *lt)
 {
-	printlog("finfo.date:%04X\n", finfo.date);
-
 	// rshiftは最上位ビットをコピーしてしまう(符号保持のため)
 	// なのでコピーされた符号を消してあげる
 	short y = ((finfo.date >> 9) & 0x7f) + 1980;
@@ -128,4 +134,90 @@ void file_gettime(struct FILEINFO finfo, struct localtime *lt)
 	lt->hour = (char)(finfo.time >> 10);
 	lt->min = (char)(finfo.time << 6 >> 11);
 	lt->sec = (char)(finfo.time & 0x0f) * 2;
+}
+
+int file_write0(struct FILEHANDLE *fh, char *buf0, int len, int *fat0)
+{
+	int write, old = fh->finfo->clustno;
+
+	/* 書き込むデータがある間繰り返す */
+	while(len > 0){
+		/* 1クラスタには収まらないので1クラスタ分だけ書く */
+		if(len > 512) write = 512;
+		else write = len;
+
+		/* バッファに書き込む */
+		memcpy(fh->buf, buf0, write);
+
+		len -= write;
+		fh->size += write;
+		fh->finfo->size += write;
+		buf0 += write;
+
+		/* 書き込むデータはなくなったので終了 */
+		if(len <= 0) break;
+
+		int fat = fat_findfree(fat0);
+		if(fat == -1) return -1;
+		else{
+			fat0[fat] = FAT_USING;
+			fat0[old] = fat;
+
+			old = fat;
+		}
+	}
+
+	return 0;
+}
+
+int file_write00(struct FILEHANDLE *fh, char *buf0, int len, int *fat0)
+{
+	int write, old = fh->finfo->clustno, start = fh->pos, tmp = fh->pos, len0 = len;
+
+	/**** POSが512以上のとき次のデータを読みださなきゃいけない */
+
+	while(len0 > 512 - tmp){
+		len0 -= 512 - tmp;
+		/* 次のFATの場所に飛ぶ */
+		old = fat0[old];
+		/* バッファをコピー */
+		buf0 = (char *)(ADR_DISKIMG + 0x3e00 + old * 512);
+		tmp = 0;
+	}
+
+	fh->pos = len0;
+
+	/* 書き込むデータがある間繰り返す */
+	while(len > 0){
+		/* 1クラスタには収まらないので1クラスタ分だけ書く */
+		if(len > 512 - fh->pos) write = 512 - fh->pos;
+		else write = len;
+
+		/* バッファに書き込む */
+		memcpy(fh->buf + fh->pos, buf0, write);
+
+		len -= write;
+		fh->size += write;
+		fh->finfo->size += write;
+		buf0 += write;
+		start += write;
+
+		/* 書き込むデータはなくなったので終了 */
+		if(len <= 0) break;
+
+		fh->pos = 0;
+
+		int fat = fat_findfree(fat0);
+		if(fat == -1) return -1;
+		else{
+			fat0[fat] = FAT_USING;
+			fat0[old] = fat;
+
+			old = fat;
+		}
+	}
+
+	fh->pos = start;
+
+	return 0;
 }

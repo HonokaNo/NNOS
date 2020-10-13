@@ -344,11 +344,20 @@ struct CONSOLE
 	struct color bcolor;
 };
 
+struct FILEINFO
+{
+	unsigned char name[8], ext[3], type;
+	char reserve[10];
+	unsigned short time, date, clustno;
+	unsigned int size;
+};
+
 struct FILEHANDLE
 {
 	char *buf;
 	int size;
 	int pos;
+	struct FILEINFO *finfo;
 };
 
 /* console.c */
@@ -376,26 +385,26 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 void close_constask(struct TASK *task);
 void close_console(struct SHEET *sht);
 
-struct FILEINFO
-{
-	unsigned char name[8], ext[3], type;
-	char reserve[10];
-	unsigned short time, date, clustno;
-	unsigned int size;
-};
-
 /* file.c */
+<<<<<<< HEAD
 #define FAT_UNUSED		0x000	/* 未使用クラスタ */
+=======
+#define FAT_UNUSED		0x000
+>>>>>>> developer
 #define FAT_RESERVE		0x001	/* 予約領域 */
 #define FAT_CANTUSED	0xff7	/* 不良なので使わせないクラスタ */
 #define FAT_USING		0xfff	/* FATチェーンの終端 */
 
 void file_readfat(int *fat, unsigned char *img);
+<<<<<<< HEAD
 void file_writefat(int *fat, unsigned char *img);
+=======
+>>>>>>> developer
 int fat_findfree(int *fat);
 struct FILEINFO *file_search(char *name, struct FILEINFO *finfo, int max);
 char *file_loadfile2(int clustno, int *psize, int *fat);
 void file_gettime(struct FILEINFO finfo, struct localtime *lt);
+int file_write00(struct FILEHANDLE *fh, char *buf0, int len, int *fat);
 
 /* window.c */
 void make_wtitle(struct SHEET *sht, char *title, char act, char bs, char resize);

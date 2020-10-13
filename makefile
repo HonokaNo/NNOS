@@ -14,7 +14,7 @@ nnos.img : nnos/ipl.bin nnos/nnos.sys Makefile \
 		notrec/notrec.hrb bball/bball.hrb invader/invader.hrb \
 		calc/calc.hrb tview/tview.hrb mmlplay/mmlplay.hrb gview/gview.hrb \
 		calendar/calendar.hrb sincurve/sincurve.hrb \
-		winsize/winsize.hrb nnos/backg.ima
+		winsize/winsize.hrb append/append.hrb nnos/backg.ima
 	$(EDIMG)   imgin:$(TOOLPATH)fdimg0at.tek \
 		wbinimg src:nnos/ipl.bin len:512 from:0 to:0 \
 		copy from:nnos/nnos.sys to:@: \
@@ -39,6 +39,7 @@ nnos.img : nnos/ipl.bin nnos/nnos.sys Makefile \
 		copy from:calendar/calendar.hrb to:@: \
 		copy from:sincurve/sincurve.hrb to:@: \
 		copy from:winsize/winsize.hrb to:@: \
+		copy from:append/append.hrb to:@: \
 		copy from:nihongo/nihongo.fnt to:@: \
 		copy from:euc.txt to:@: \
 		copy from:mmldata/daigo.mml to:@: \
@@ -79,6 +80,7 @@ full :
 	$(MAKE) -C calendar
 	$(MAKE) -C sincurve
 	$(MAKE) -C winsize
+	$(MAKE) -C append
 	$(MAKE) nnos.img
 
 run_full :
@@ -98,6 +100,7 @@ src_only :
 	-$(DEL) nnos.img
 
 clean_full :
+	$(MAKE) -C stdlib	clean
 	$(MAKE) -C nnos		clean
 	$(MAKE) -C library	clean
 	$(MAKE) -C star1	clean
@@ -119,8 +122,10 @@ clean_full :
 	$(MAKE) -C calendar	clean
 	$(MAKE) -C sincurve	clean
 	$(MAKE) -C winsize	clean
+	$(MAKE) -C append	clean
 
 src_only_full :
+	$(MAKE) -C stdlib	src_only
 	$(MAKE) -C nnos		src_only
 	$(MAKE) -C library	src_only
 	$(MAKE) -C star1	src_only
@@ -142,6 +147,7 @@ src_only_full :
 	$(MAKE) -C calendar	src_only
 	$(MAKE) -C sincurve	src_only
 	$(MAKE) -C winsize	src_only
+	$(MAKE) -C append	src_only
 	-$(DEL) nnos.img
 
 refresh :

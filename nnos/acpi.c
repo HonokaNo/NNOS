@@ -123,7 +123,13 @@ void acpi_hlt(struct BOOTINFO *binfo, int *fat)
 				buf = (char *)rsdt->entry[l];
 				memcpy(s, buf, 4);
 				s[4] = 0;
+<<<<<<< HEAD
 				if(!strncmp(buf, "FACP", 4)) facp = buf;
+=======
+				if(!strncmp(buf, "FACP", 4)){
+					facp = buf;
+				}
+>>>>>>> developer
 			}
 		}
 

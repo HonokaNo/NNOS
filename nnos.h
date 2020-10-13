@@ -51,7 +51,11 @@ void api_beep(int tone);
 #define FSEEK_CUR		1
 #define FSEEK_END		2
 
+<<<<<<< HEAD
 int api_fopen(char *fname);
+=======
+int api_fopen(char *fname, int create);
+>>>>>>> developer
 int api_fclose(int fhandle);
 int api_fseek(int fhandle, int offset, int mode);
 int api_fsize(int fhandle, int mode);

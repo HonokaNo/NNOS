@@ -9,7 +9,7 @@ void HariMain(void)
 
 	for(p = cmdline; *p != ' '; p++);
 	for(; *p == ' '; p++);
-	fh = api_fopen(p);
+	fh = api_fopen(p, 0);
 	if(fh != 0){
 		for(;;){
 			if(api_fread(&c, 1, fh) == 0) break;
@@ -34,6 +34,9 @@ void HariMain(void)
 	cmdline[12] = '.';
 
 	api_fwrite(cmdline, 12, fh);
+
+	sprintf(cmdline, "len:%d\n", api_fsize(fh, 0));
+	api_putstr0(cmdline);
 
 	api_end();
 }
