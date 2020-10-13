@@ -944,6 +944,7 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 		fh = (struct FILEHANDLE *)eax;
 		for(i = 0; i < ecx; i++){
 			if(fh->pos == fh->size) break;
+			printlog("%02X\n", (char)fh->buf[fh->pos]);
 			*((char *)ebx + ds_base + i) = fh->buf[fh->pos];
 			fh->pos++;
 		}
@@ -969,11 +970,15 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 //		int write, old = fh->finfo->clustno, fat0;
 		char *buf0 = (char *)(ebx + ds_base);
 
+		/* ファイルの外を指している */
+		/* バグの原因になるので終わりにする */
+		if(fh->pos < 0 && fh->pos > fh->size) return 0;
+
 		reg[7] = 0;
 
 		/* 新しくファイルに書き込む */
 		if(fh->pos == 0 && fh->size == 0){
-			reg[7] = file_write00(fh, buf0, ecx, cons->sht->task->fat);
+			reg[7] = file_write0(fh, buf0, ecx, cons->sht->task->fat);
 		}else if(fh->pos == 0 && fh->size != 0){
 			int old = fh->finfo->clustno, fat0;
 			int fat = cons->sht->task->fat[old];
@@ -1000,17 +1005,18 @@ int *hrb_api(int edi, int esi, int ebp, int esp, int ebx, int edx, int ecx, int 
 			fh->buf = (char *)(ADR_DISKIMG + 0x3e00 + fh->finfo->clustno * 512);
 
 			/* ファイルを書き込む */
-			reg[7] = file_write00(fh, buf0, ecx, cons->sht->task->fat);
+			reg[7] = file_write0(fh, buf0, ecx, cons->sht->task->fat);
 		/* 追記部分を実装しようとしたらバグでうまく読み込めないので */
 		/* コメント化してそのまま置いておく */
-/*		}else if(fh->pos != 0 && fh->size != 0){
+		}else if(fh->pos != 0 && fh->size != 0){
 			fh->size = fh->pos;
 			fh->finfo->size = fh->size;
 			reg[7] = file_write00(fh, buf0, ecx, cons->sht->task->fat);
-			fh->size = fh->pos + ecx;
+			/**** ここのサイズ計算も間違いになるので直す */
+			fh->size = fh->pos;
 			fh->finfo->size = fh->size;
-			printlog("size:%d\n", fh->size);
-			printlog("fsize:%d\n", fh->finfo->size);*/
+//			printlog("size:%d\n", fh->size);
+//			printlog("fsize:%d\n", fh->finfo->size);
 		}
 	}
 	if(edx == 30){

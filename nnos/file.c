@@ -151,3 +151,55 @@ int file_write0(struct FILEHANDLE *fh, char *buf0, int len, int *fat0)
 
 	return 0;
 }
+
+int file_write00(struct FILEHANDLE *fh, char *buf0, int len, int *fat0)
+{
+	int write, old = fh->finfo->clustno, start = fh->pos, tmp = fh->pos, len0 = len;
+
+	/**** POSが512以上のとき次のデータを読みださなきゃいけない */
+
+	while(len0 > 512 - tmp){
+		len0 -= 512 - tmp;
+		/* 次のFATの場所に飛ぶ */
+		old = fat0[old];
+		/* バッファをコピー */
+		buf0 = (char *)(ADR_DISKIMG + 0x3e00 + old * 512);
+		tmp = 0;
+	}
+
+	fh->pos = len0;
+
+	/* 書き込むデータがある間繰り返す */
+	while(len > 0){
+		/* 1クラスタには収まらないので1クラスタ分だけ書く */
+		if(len > 512 - fh->pos) write = 512 - fh->pos;
+		else write = len;
+
+		/* バッファに書き込む */
+		memcpy(fh->buf + fh->pos, buf0, write);
+
+		len -= write;
+		fh->size += write;
+		fh->finfo->size += write;
+		buf0 += write;
+		start += write;
+
+		/* 書き込むデータはなくなったので終了 */
+		if(len <= 0) break;
+
+		fh->pos = 0;
+
+		int fat = fat_findfree(fat0);
+		if(fat == -1) return -1;
+		else{
+			fat0[fat] = FAT_USING;
+			fat0[old] = fat;
+
+			old = fat;
+		}
+	}
+
+	fh->pos = start;
+
+	return 0;
+}
