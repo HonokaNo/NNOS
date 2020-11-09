@@ -53,6 +53,8 @@ struct TIMER *timer_alloc(void)
 
 void timer_free(struct TIMER *timer)
 {
+	if(timer->flags == TIMER_FLAGS_USING) timer_cancel(timer);
+
 	timer->flags = 0;
 	return;
 }

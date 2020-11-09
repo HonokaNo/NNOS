@@ -104,6 +104,21 @@ void inthandler21(int *esp)
 	return;
 }
 
+char intflg = 0;
+
+/* FDC */
+void inthandler26(int *esp)
+{
+	/* から読み IRQにCPUが気付いたことをFDCに通知 */
+	io_in8(0x3f4);
+
+	io_out8(PIC0_OCW2, 0x66);
+
+	intflg = 1;
+
+	return;
+}
+
 /* 不完全割り込み防止 */
 void inthandler27(int *esp)
 {

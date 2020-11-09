@@ -155,7 +155,7 @@ API list:
 
 		return:
 
-		eax:file handle num
+		eax:file handle num   if error = 0
 
 	23.close file
 		edx:23

@@ -28,6 +28,7 @@ void asm_inthandler0c(void);
 void asm_inthandler0d(void);
 void asm_inthandler20(void);
 void asm_inthandler21(void);
+void asm_inthandler26(void);
 void asm_inthandler27(void);
 void asm_inthandler28(void);
 void asm_inthandler2c(void);
@@ -149,6 +150,7 @@ void init_pic(void);
 #define TAG_MOUSE		3		/* マウスデータ */
 #define TAG_TIMER		4		/* タイマ割り込み */
 #define TAG_CONSOLE		5		/* コンソール終了データ */
+#define TAG_FDC			6		/* FDCに送るコマンド */
 
 struct BUFDATA
 {
@@ -391,10 +393,12 @@ void close_console(struct SHEET *sht);
 #define FAT_USING		0xfff	/* FATチェーンの終端 */
 
 void file_readfat(int *fat, unsigned char *img);
+void file_writefat(int *fat, unsigned char *img);
 int fat_findfree(int *fat);
 struct FILEINFO *file_search(char *name, struct FILEINFO *finfo, int max);
 char *file_loadfile2(int clustno, int *psize, int *fat);
 void file_gettime(struct FILEINFO finfo, struct localtime *lt);
+int file_write0(struct FILEHANDLE *fh, char *buf0, int len, int *fat);
 int file_write00(struct FILEHANDLE *fh, char *buf0, int len, int *fat);
 
 /* window.c */
@@ -428,3 +432,7 @@ struct rgb
 {
 	unsigned char b, g, r, t;
 };
+
+/* fdc.c */
+void fdc_init(void);
+void task_fdc(void);

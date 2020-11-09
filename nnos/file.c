@@ -4,9 +4,26 @@
 void file_readfat(int *fat, unsigned char *img)
 {
 	int i, j = 0;
+
 	for(i = 0; i < 2880; i += 2){
 		fat[i + 0] = (img[j + 0]      | img[j + 1] << 8) & 0xfff;
 		fat[i + 1] = (img[j + 1] >> 4 | img[j + 2] << 4) & 0xfff;
+
+		j += 3;
+	}
+	return;
+}
+
+void file_writefat(int *fat, unsigned char *img)
+{
+	int i, j = 0;
+
+	for(i = 0; i < 2880; i += 2){
+		img[j + 0] = (fat[i + 0] & 0xff);
+		img[j + 1] = (fat[j + 1] & 0x0f) << 4;
+		img[j + 1] = (fat[j + 0] & 0xf00) >> 8;
+		img[j + 2] = (fat[j + 1] >> 4) & 0xff;
+
 		j += 3;
 	}
 	return;
@@ -118,8 +135,26 @@ void file_gettime(struct FILEINFO finfo, struct localtime *lt)
 	lt->sec = (char)(finfo.time & 0x0f) * 2;
 }
 
-int file_write0(struct FILEHANDLE *fh, char *buf0, int len, int *fat0)
+struct CHS
 {
+	char cylinder;
+	char head;
+	char sector;
+};
+
+void getCHS(unsigned int addr, struct CHS *chs)
+{
+	/* アドレスからのオフセット */
+	unsigned int offset = addr - ADR_DISKIMG;
+
+	char sectors = offset / 512;
+
+	return;
+}
+
+int file_write0(struct FILEHANDLE *fh, const char *buf0, int len, int *fat0)
+{
+	extern struct BUFFER FDCbuffer;
 	int write, old = fh->finfo->clustno;
 
 	/* 書き込むデータがある間繰り返す */
@@ -152,11 +187,9 @@ int file_write0(struct FILEHANDLE *fh, char *buf0, int len, int *fat0)
 	return 0;
 }
 
-int file_write00(struct FILEHANDLE *fh, char *buf0, int len, int *fat0)
+int file_write00(struct FILEHANDLE *fh, const char *buf0, int len, int *fat0)
 {
 	int write, old = fh->finfo->clustno, start = fh->pos, tmp = fh->pos, len0 = len;
-
-	/**** POSが512以上のとき次のデータを読みださなきゃいけない */
 
 	while(len0 > 512 - tmp){
 		len0 -= 512 - tmp;
@@ -167,6 +200,7 @@ int file_write00(struct FILEHANDLE *fh, char *buf0, int len, int *fat0)
 		tmp = 0;
 	}
 
+	/* とんだクラスタ内でのオフセット */
 	fh->pos = len0;
 
 	/* 書き込むデータがある間繰り返す */

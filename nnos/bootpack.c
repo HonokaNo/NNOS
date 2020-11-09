@@ -27,7 +27,7 @@ void HariMain(void)
 	unsigned char *buf_back, buf_mouse[256 * 4];
 	struct MOUSE_DEC mdec;
 	int mx, my;
-	struct TASK *task_a, *task;
+	struct TASK *task_a, *task, *task_fd;
 	struct BUFFER keycmd;
 	int key_shift = 0, key_leds = (binfo->leds >> 4) & 7, keycmd_wait = -1;
 	int x, y, j, mmx = -0x7fffffff, mmy = -0x7fffffff;
@@ -74,19 +74,30 @@ void HariMain(void)
 	/* 割り込み有効化 11101110 */
 	io_out8(PIC1_IMR, 0xee);
 
-	buffer_init(&buffer, 250, 0);
-	buffer_init(&keycmd,  32, 0);
-
-	*((int *)0x0fec) = (int)&buffer;
-
-	init_pit();
-
 	/* メモリ量取得 */
 	memtotal = memtest(ADR_BOTPAK, 0xffffffff);
 	memman_init(memman);
 	memman_free(memman, 0x00001010, 0x0009e000);
 	memman_free(memman, 0x00400000, memtotal - 0x00400000);
 
+	init_pit();
+
+	/* FDC用のタスク */
+	task_fd = task_init(memman);
+	task_fd->tss.esp = memman_alloc_4k(memman, 1024 * 64) + 64 * 1024;
+	task_fd->tss.eip = (int)task_fdc;
+	/* 最高優先 */
+	task_run(task_fdc, 3, 1);
+
+	/* 読み込み開始 */
+	fdc_init();
+
+	buffer_init(&buffer, 250, 0);
+	buffer_init(&keycmd,  32, 0);
+
+	*((int *)0x0fec) = (int)&buffer;
+
+	/* 先にFATを1つ定義してほかの場所でも同じFATを使わせる */
 	fat = (int *)memman_alloc_4k(memman, 2880 * 4);
 	file_readfat(fat, (unsigned char *)(ADR_DISKIMG + 0x0200));
 
@@ -97,6 +108,7 @@ void HariMain(void)
 
 	init_timerctl();
 
+	/* 周辺機器初期化 */
 	init_keyboard();
 	enable_mouse(&mdec);
 
@@ -112,6 +124,7 @@ void HariMain(void)
 
 	background_image(sht_back, "backg.ima", fat);
 
+	/* キーコードなどをタスクに分配するタスク */
 	task_a = task_init(memman);
 	buffer.task = task_a;
 	task_run(task_a, 1, 2);
@@ -125,17 +138,15 @@ void HariMain(void)
 	mx = (binfo->scrnx - 16) / 2;
 	my = (binfo->scrny - 28 - 16) / 2;
 
+	/* 初めにコンソールを1つ開けておく */
 	key_win = open_console(shtctl, memtotal, fat);
 
-	if(binfo->vmode == 24 || binfo->vmode == 32){
-		sheet_slide(sht_back,    0,   0);
-		sheet_slide(key_win,   400,  10);
-		sheet_slide(sht_mouse,  mx,  my);
-	}else{
-		sheet_slide(sht_back,   0,  0);
-		sheet_slide(key_win,   56,  6);
-		sheet_slide(sht_mouse, mx, my);
-	}
+	/* ウィンドウ位置初期化 */
+	if(binfo->vmode == 24 || binfo->vmode == 32) sheet_slide(key_win,   400,  10);
+	else sheet_slide(key_win,   56,  6);
+
+	sheet_slide(sht_back,    0,   0);
+	sheet_slide(sht_mouse,  mx,  my);
 
 	sheet_updown(sht_back,  0, 0);
 	sheet_updown(key_win,   1, 0);
