@@ -83,11 +83,11 @@ void HariMain(void)
 	init_pit();
 
 	/* FDC用のタスク */
-	task_fd = task_init(memman);
-	task_fd->tss.esp = memman_alloc_4k(memman, 1024 * 64) + 64 * 1024;
-	task_fd->tss.eip = (int)task_fdc;
+//	task_fd = task_init(memman);
+//	task_fd->tss.esp = memman_alloc_4k(memman, 1024 * 64) + 64 * 1024;
+//	task_fd->tss.eip = (int)task_fdc;
 	/* 最高優先 */
-	task_run(task_fdc, 3, 1);
+//	task_run(task_fdc, 3, 1);
 
 	/* 読み込み開始 */
 	fdc_init();

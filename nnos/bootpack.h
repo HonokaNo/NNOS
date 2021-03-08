@@ -398,8 +398,8 @@ int fat_findfree(int *fat);
 struct FILEINFO *file_search(char *name, struct FILEINFO *finfo, int max);
 char *file_loadfile2(int clustno, int *psize, int *fat);
 void file_gettime(struct FILEINFO finfo, struct localtime *lt);
-int file_write0(struct FILEHANDLE *fh, char *buf0, int len, int *fat);
-int file_write00(struct FILEHANDLE *fh, char *buf0, int len, int *fat);
+int file_write0(struct FILEHANDLE *fh, const char *buf0, int len, int *fat0);
+int file_write00(struct FILEHANDLE *fh, const char *buf0, int len, int *fat0);
 
 /* window.c */
 void make_wtitle(struct SHEET *sht, char *title, char act, char bs, char resize);
@@ -435,4 +435,4 @@ struct rgb
 
 /* fdc.c */
 void fdc_init(void);
-void task_fdc(void);
+//void task_fdc(void);

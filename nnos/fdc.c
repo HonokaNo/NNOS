@@ -81,7 +81,7 @@ char rw_end = 0;
 
 void fdc_write(unsigned int cylinder, unsigned int head, unsigned int sector, unsigned int addr)
 {
-	char[] cmd = {0xc5, head << 2, cylinder, head, sector, 0x02, 0x7f, 0x12, 0xff};
+	char cmd[] = {0xc5, head << 2, cylinder, head, sector, 0x02, 0x7f, 0x12, 0xff};
 	char result[7];
 
 	/* 書き込み用設定 */
@@ -108,43 +108,43 @@ void fdc_write(unsigned int cylinder, unsigned int head, unsigned int sector, un
 
 static char rw = 0;
 
-void task_fdc(void)
+/*void task_fdc(void)
 {
 	struct TASK *task = task_now();
 	struct TIMER *timer;
-	struct BUFDATA dat;
+	struct BUFDATA dat;*/
 	/* cylinder, head, sector */
-	unsigned int c, h, s, addr;
+/*	unsigned int c, h, s, addr;
 
 	buffer_init(&FDCbuffer, 512, 0);
 
 	timer = timer_alloc();
-	timer_init(timer, 128, 0);
+	timer_init(timer, 128, 0);*/
 
 	/* モーター停止 */
-	io_out8(0x3f2, 0x0c);
+/*	io_out8(0x3f2, 0x0c);
 	motor = 0;
 
 	for(;;){
 		io_cli();
 
-		if(buffer_status(&FDCbuffer) == 0){
+		if(buffer_status(&FDCbuffer) == 0){*/
 			/* 3s待つ */
-			timer_settime(timer, MOTOR_STOP_SEC * 100);
-			task_sleep(task);
-			io_sti();
+//			timer_settime(timer, MOTOR_STOP_SEC * 100);
+//			task_sleep(task);
+//			io_sti();
 
 			/* 書き込みがない */
-			rw_end = 1;
-		}else{
+//			rw_end = 1;
+/*		}else{
 			dat = buffer_get(&FDCbuffer);
 			io_sti();
 
 			if(dat.tag == TAG_TIMER){
 				if(dat.data == 128){
-					if(rw == 0){
+					if(rw == 0){*/
 						/* 3s立ったのでモーター停止 */
-						stop_motor();
+/*						stop_motor();
 						task_sleep(task);
 					}else if(rw == 2){
 						fdc_write(c, h, s, addr);
@@ -153,28 +153,28 @@ void task_fdc(void)
 					}
 				}
 			}else{
-				timer_cancel(timer);
+				timer_cancel(timer);*/
 
 				/* 必要な引数がすべてあることを確認する */
-				if(buffer_status(&FDCbuffer) >= 4){
-					if(dat.tag == TAG_FDC){
+/*				if(buffer_status(&FDCbuffer) >= 4){
+					if(dat.tag == TAG_FDC){*/
 						/* read mode */
-						if(dat.data == 1){
+/*						if(dat.data == 1){
 							c = (unsigned int)buffer_get(&FDCbuffer);
 							h = (unsigned int)buffer_get(&FDCbuffer);
 							s = (unsigned int)buffer_get(&FDCbuffer);
-							addr = (unsigned int)buffer_get(&FDCbuffer);
+							addr = (unsigned int)buffer_get(&FDCbuffer);*/
 						/* write mode */
-						}else if(dat.data == 2){
+/*						}else if(dat.data == 2){
 							c = (unsigned int)buffer_get(&FDCbuffer);
 							h = (unsigned int)buffer_get(&FDCbuffer);
 							s = (unsigned int)buffer_get(&FDCbuffer);
 							addr = (unsigned int)buffer_get(&FDCbuffer);
 
-							rw = 2;
+							rw = 2;*/
 
 							/* モーターを回す */
-							start_motor();
+/*							start_motor();
 							timer_settime(timer, 300);
 						}
 					}
@@ -182,4 +182,4 @@ void task_fdc(void)
 			}
 		}
 	}
-}
+}*/
